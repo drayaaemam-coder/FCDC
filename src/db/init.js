@@ -5,7 +5,7 @@ const path = require("path");
 const bcrypt = require("bcryptjs");
 const { pool, tx } = require("./pool");
 const config = require("../config");
-const { INSTITUTIONS, ACTIVITY_TYPES } = require("./seed-data");
+const { INSTITUTIONS, AXES } = require("./seed-data");
 
 async function main() {
   const sql = fs.readFileSync(path.join(__dirname, "schema.sql"), "utf8");
@@ -27,13 +27,16 @@ async function main() {
           [id, inst.id, gov, mk, vil]);
       }
     }
-    for (const [i, t] of ACTIVITY_TYPES.entries()) {
+    for (const [i, a] of AXES.entries()) {
       await c.query(
-        `INSERT INTO activity_types (name, sort_order) VALUES ($1,$2)
-         ON CONFLICT (name) DO UPDATE SET sort_order = EXCLUDED.sort_order`, [t, i]);
+        `INSERT INTO activity_types (name, sort_order, description, active) VALUES ($1,$2,$3,TRUE)
+         ON CONFLICT (name) DO UPDATE SET sort_order = EXCLUDED.sort_order, description = EXCLUDED.description, active = TRUE`,
+        [a.name, i, a.desc]);
     }
+    // الأنواع القديمة تُخفى من الاختيار ولا تُحذف، حتى تبقى الأنشطة المسجلة بها كما هي
+    await c.query("UPDATE activity_types SET active = FALSE WHERE NOT (name = ANY($1))", [AXES.map(a => a.name)]);
   });
-  console.log(`✓ seeded ${INSTITUTIONS.length} institutions, ${INSTITUTIONS.reduce((s, i) => s + i.c.length, 0)} centers, ${ACTIVITY_TYPES.length} activity types`);
+  console.log(`✓ seeded ${INSTITUTIONS.length} institutions, ${INSTITUTIONS.reduce((s, i) => s + i.c.length, 0)} centers, ${AXES.length} activity axes`);
 
   const { rows } = await pool.query("SELECT count(*)::int AS n FROM users WHERE role='admin'");
   if (!rows[0].n) {

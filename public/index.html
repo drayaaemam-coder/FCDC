@@ -32,6 +32,7 @@
       <button class="tab" role="tab" data-view="reports" hidden>التقارير</button>
       <button class="tab" role="tab" data-view="media" hidden>التوثيق الإعلامي</button>
       <button class="tab" role="tab" data-view="users" hidden>الحسابات</button>
+      <button class="tab" role="tab" data-view="plan">الخطة الشهرية</button>
       <button class="tab" role="tab" data-view="log" aria-selected="true">تسجيل الأنشطة</button>
     </nav>
   </div>
@@ -72,19 +73,19 @@
         <option value="30">آخر 30 يومًا</option><option value="90">آخر 3 أشهر</option><option value="all">منذ البداية</option></select></div>
       <div><label for="d-inst">المؤسسة</label><select id="d-inst" class="sel-inst"></select></div>
       <div><label for="d-gov">المحافظة</label><select id="d-gov" class="sel-gov"></select></div>
-      <div><label for="d-type">نوع النشاط</label><select id="d-type"></select></div>
+      <div><label for="d-type">المحور</label><select id="d-type"></select></div>
     </div>
     <div class="kpis" id="kpis"></div>
     <p class="foot">أعداد الحضور تُجمع من كل نشاط، فقد يتكرر الشخص نفسه في أكثر من نشاط. هي مشاركات وليست مستفيدين فريدين. الحد الأدنى المطلوب ٣ أنشطة لكل مركز شهريًا.</p>
     <div class="sec">
       <div class="sec-h"><h2>حسب المؤسسة</h2><span class="hint">اضغط على المؤسسة لعرض مراكزها</span></div>
       <div class="tbl-wrap"><table>
-        <thead><tr><th>المؤسسة</th><th>المراكز</th><th>مراكز سجّلت</th><th>الأنشطة</th><th>الحضور</th><th>آخر تسجيل</th></tr></thead>
+        <thead><tr><th>المؤسسة</th><th>المراكز</th><th>مراكز سجّلت</th><th>خطة الشهر</th><th>الأنشطة</th><th>الحضور</th><th>آخر تسجيل</th></tr></thead>
         <tbody id="inst-tb"></tbody>
       </table></div>
     </div>
     <div class="sec grid2">
-      <div class="panel"><h3>الأنشطة حسب النوع</h3><div id="by-type"></div></div>
+      <div class="panel"><h3>الأنشطة حسب المحور</h3><div id="by-type"></div></div>
       <div class="panel"><h3>الأنشطة أسبوعيًا (آخر 12 أسبوعًا)</h3><div id="by-week"></div></div>
     </div>
     <div class="sec">
@@ -105,6 +106,17 @@
     </div>
     <p class="foot" style="margin:-8px 0 14px">التقرير يُبنى تلقائيًا من الأنشطة المسجلة. الملف المنزّل يفتح في أي متصفح ويمكن طباعته أو حفظه PDF من هناك.</p>
     <div class="paper-wrap"><div class="paper" id="report"></div></div>
+  </section>
+
+  <!-- ============ MONTHLY PLAN ============ -->
+  <section id="view-plan" hidden>
+    <div class="filters">
+      <div><label for="p-month">شهر الخطة</label><select id="p-month"></select></div>
+      <div id="p-inst-wrap" hidden><label for="p-inst">المؤسسة</label><select id="p-inst" class="sel-inst"></select></div>
+      <div><label for="p-center">المركز</label><select id="p-center"></select></div>
+    </div>
+    <div id="p-overview"></div>
+    <div id="p-editor"></div>
   </section>
 
   <!-- ============ USERS (admin) ============ -->
@@ -157,5 +169,6 @@
 </form></dialog>
 
 <script src="/js/app.js"></script>
+<script src="/js/plan.js"></script>
 </body>
 </html>

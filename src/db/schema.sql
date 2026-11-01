@@ -17,11 +17,14 @@ CREATE TABLE IF NOT EXISTS centers (
 );
 CREATE INDEX IF NOT EXISTS centers_inst_idx ON centers(institution_id);
 
+-- محاور الأنشطة (inactive = محور قديم لم يعد يُعرض للاختيار، تبقى أنشطته المسجلة كما هي)
 CREATE TABLE IF NOT EXISTS activity_types (
   id          SERIAL       PRIMARY KEY,
   name        VARCHAR(100) NOT NULL UNIQUE,
   sort_order  INT          NOT NULL DEFAULT 0
 );
+ALTER TABLE activity_types ADD COLUMN IF NOT EXISTS description TEXT    NOT NULL DEFAULT '';
+ALTER TABLE activity_types ADD COLUMN IF NOT EXISTS active      BOOLEAN NOT NULL DEFAULT TRUE;
 
 CREATE TABLE IF NOT EXISTS users (
   id              SERIAL       PRIMARY KEY,
@@ -70,3 +73,40 @@ CREATE TABLE IF NOT EXISTS photos (
   created_at   TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS photos_activity_idx ON photos(activity_id);
+
+-- الخطة الشهرية: خطة مستقلة لكل مركز في كل شهر
+CREATE TABLE IF NOT EXISTS monthly_plans (
+  id              SERIAL       PRIMARY KEY,
+  center_id       VARCHAR(20)  NOT NULL REFERENCES centers(id) ON UPDATE CASCADE,
+  institution_id  VARCHAR(10)  NOT NULL REFERENCES institutions(id) ON UPDATE CASCADE,
+  plan_month      CHAR(7)      NOT NULL,                       -- YYYY-MM
+  status          VARCHAR(20)  NOT NULL DEFAULT 'draft'
+                  CHECK (status IN ('draft','submitted','approved','returned')),
+  admin_note      VARCHAR(600) NOT NULL DEFAULT '',
+  created_by      INT          REFERENCES users(id) ON DELETE SET NULL,
+  updated_by      INT          REFERENCES users(id) ON DELETE SET NULL,
+  updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  submitted_at    TIMESTAMPTZ,
+  reviewed_by     INT          REFERENCES users(id) ON DELETE SET NULL,
+  reviewed_at     TIMESTAMPTZ,
+  CONSTRAINT one_plan_per_center_month UNIQUE (center_id, plan_month)
+);
+CREATE INDEX IF NOT EXISTS monthly_plans_month_idx ON monthly_plans(plan_month, institution_id);
+
+-- بنود الخطة: اسم النشاط، المحور، الفئة المستهدفة، العدد المتوقع، التاريخ والتوقيت، الجهة المنفذة/الشريكة، المسؤول
+CREATE TABLE IF NOT EXISTS plan_items (
+  id              SERIAL       PRIMARY KEY,
+  plan_id         INT          NOT NULL REFERENCES monthly_plans(id) ON DELETE CASCADE,
+  title           VARCHAR(140) NOT NULL,
+  type_name       VARCHAR(100) NOT NULL,                       -- المحور
+  target_group    VARCHAR(100) NOT NULL,
+  expected_count  INT          NOT NULL DEFAULT 0 CHECK (expected_count >= 0),
+  item_date       DATE         NOT NULL,
+  start_time      TIME         NOT NULL,
+  end_time        TIME         NOT NULL,
+  partner         VARCHAR(150) NOT NULL DEFAULT '',            -- الجهة المنفذة أو الشريكة
+  responsible     VARCHAR(100) NOT NULL,                       -- المسؤول عن التنفيذ
+  sort_order      INT          NOT NULL DEFAULT 0,
+  CONSTRAINT plan_item_time_order CHECK (start_time < end_time)
+);
+CREATE INDEX IF NOT EXISTS plan_items_plan_idx ON plan_items(plan_id);

@@ -17,6 +17,10 @@ const config = {
   minPerMonth: 3,
   maxPhotos: 4,
   startMonth: env.START_MONTH || "2024-09",
+  // ضوابط الخطة الشهرية: الفترة التشغيلية للمراكز، وعدد الشهور المسموح بالتخطيط لها مقدمًا
+  dayStart: "07:30",
+  dayEnd: "17:00",
+  planMonthsAhead: 3,
 };
 
 if (!config.jwtSecret) {

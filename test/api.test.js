@@ -32,7 +32,8 @@ const batch = (center, acts, photos = {}) => {
   }
   return fd;
 };
-const act = (title, extra = {}) => ({ date: today, type: "توعية وإرشاد أسري", title, kids: 5, women: 3, men: 0, ...extra });
+const planMonth = "2025-02"; // شهر اختبار خارج الاستخدام الفعلي
+const act = (title, extra = {}) => ({ date: today, type: "دعم الأسرة والتنشئة الإيجابية", title, kids: 5, women: 3, men: 0, ...extra });
 
 const admin = client(), inst = client();
 let instUserId, createdIds = [];
@@ -43,6 +44,7 @@ before(async () => {
 });
 after(async () => {
   await pool.query("DELETE FROM activities WHERE title LIKE $1", [`%${stamp}%`]);
+  await pool.query("DELETE FROM monthly_plans WHERE plan_month=$1", [planMonth]);
   await pool.query("DELETE FROM users WHERE email LIKE $1", [`%${stamp}%`]);
   server.close(); await pool.end();
 });
@@ -80,7 +82,7 @@ test("institution cannot register for another institution's center", async () =>
 });
 
 test("valid batch with photos is saved; duplicates are rejected", async () => {
-  const acts = [act(`ندوة التغذية ${stamp}`), act(`يوم رياضي ${stamp}`, { type: "أنشطة رياضية وثقافية", kids: 40 }), act(`قافلة طبية ${stamp}`, { type: "خدمات صحية وقوافل", men: 9 })];
+  const acts = [act(`ندوة التغذية ${stamp}`), act(`يوم رياضي ${stamp}`, { type: "الأنشطة الرياضية والبدنية", kids: 40 }), act(`قافلة طبية ${stamp}`, { type: "الرعاية الصحية والتوعية", men: 9 })];
   const r = await inst("POST", "/api/activities/batch", batch("hk-01", acts, { 0: 2 }));
   assert.equal(r.status, 201, JSON.stringify(r.body)); createdIds = r.body.ids;
 
@@ -104,6 +106,42 @@ test("listing is scoped, photos are served", async () => {
   assert.equal(ph.status, 200); assert.ok(ph.body.byteLength > 0);
   const all = (await admin("GET", "/api/activities")).body.activities;
   assert.ok(all.length >= mine.length);
+});
+
+test("monthly plan: validation, submit, lock, review", async () => {
+  await pool.query("DELETE FROM monthly_plans WHERE plan_month=$1", [planMonth]);
+  const item = (title, extra = {}) => ({ title, type: "تنمية ورعاية الطفل", target: "أطفال الحضانة", expected: 25,
+    date: planMonth + "-10", start: "09:00", end: "11:00", partner: "الوحدة الصحية", responsible: "أ. منى", ...extra });
+  const empty = await inst("GET", `/api/plans/hk-01/${planMonth}`);
+  assert.equal(empty.body.plan.status, "none");
+  // other institution's center
+  assert.equal((await inst("PUT", `/api/plans/mk-01/${planMonth}`, { items: [] })).status, 403);
+  // time outside 07:30–17:00, date outside month, missing responsible
+  const bad = await inst("PUT", `/api/plans/hk-01/${planMonth}`, { items: [
+    item(`نشاط مبكر ${stamp}`, { start: "07:00" }), item(`نشاط متأخر ${stamp}`, { end: "17:30" }),
+    item(`شهر آخر ${stamp}`, { date: "2025-03-01" }), item(`بلا مسؤول ${stamp}`, { responsible: "" })] });
+  assert.equal(bad.status, 422); assert.deepEqual(Object.keys(bad.body.errors), ["0", "1", "2", "3"]);
+  // draft save, then submit needs >= 3 items
+  const d = await inst("PUT", `/api/plans/hk-01/${planMonth}`, { items: [item(`ندوة ${stamp}`)] });
+  assert.equal(d.status, 200); assert.equal(d.body.plan.status, "draft");
+  assert.equal((await inst("PUT", `/api/plans/hk-01/${planMonth}`, { items: [item(`ندوة ${stamp}`)], submit: true })).status, 422);
+  const items = [item(`ندوة ${stamp}`), item(`يوم رياضي ${stamp}`, { type: "الأنشطة الرياضية والبدنية", date: planMonth + "-17", start: "13:00", end: "16:00" }),
+    item(`احتفال ${stamp}`, { type: "الأنشطة الترفيهية والمناسبات", date: planMonth + "-24", end: "16:00" })];
+  const s = await inst("PUT", `/api/plans/hk-01/${planMonth}`, { items, submit: true });
+  assert.equal(s.status, 200); assert.equal(s.body.plan.status, "submitted"); assert.equal(s.body.plan.items.length, 3);
+  assert.equal(s.body.plan.items[1].start, "13:00");
+  // locked for the institution while submitted
+  assert.equal((await inst("PUT", `/api/plans/hk-01/${planMonth}`, { items })).status, 409);
+  // review is admin-only; return needs a note; then institution can edit again
+  assert.equal((await inst("POST", `/api/plans/${s.body.plan.id}/review`, { action: "approve" })).status, 403);
+  assert.equal((await admin("POST", `/api/plans/${s.body.plan.id}/review`, { action: "return" })).status, 422);
+  const r = await admin("POST", `/api/plans/${s.body.plan.id}/review`, { action: "return", note: "أضيفوا نشاطًا صحيًا" });
+  assert.equal(r.body.plan.status, "returned");
+  assert.equal((await inst("PUT", `/api/plans/hk-01/${planMonth}`, { items, submit: true })).status, 200);
+  const a = await admin("POST", `/api/plans/${s.body.plan.id}/review`, { action: "approve" });
+  assert.equal(a.body.plan.status, "approved");
+  const sum = await inst("GET", `/api/plans?from=${planMonth}&to=${planMonth}`);
+  assert.deepEqual(sum.body.plans.map(p => [p.center, p.items, p.expected]), [["hk-01", 3, 75]]);
 });
 
 test("deleting: owner and admin only; deactivated user is logged out", async () => {

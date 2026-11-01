@@ -56,7 +56,7 @@ async function validateBatch(center, items, types) {
   clean.forEach((r, i) => {
     r.norm = norm(r.title);
     if (!isDate(r.date) || !types.includes(r.type) || r.title.length < 4 || r.title.length > 140)
-      return errs[i] = "أكمل التاريخ ونوع النشاط والعنوان (٤ أحرف على الأقل).";
+      return errs[i] = "أكمل التاريخ والمحور والعنوان (٤ أحرف على الأقل).";
     if (r.date > today) return errs[i] = "التاريخ لا يمكن أن يكون في المستقبل.";
     if (r.date < config.startMonth + "-01") return errs[i] = "التاريخ قبل بداية المشروع.";
     if ([r.kids, r.women, r.men].some(Number.isNaN)) return errs[i] = "أعداد الحضور يجب أن تكون أرقامًا صحيحة موجبة.";
@@ -97,7 +97,7 @@ router.post("/batch", upload.any(), ah(async (req, res) => {
     throw new HttpError(403, "لا يمكنك التسجيل لمركز تابع لمؤسسة أخرى");
   if (items.length < config.minPerBatch) throw new HttpError(422, `الحد الأدنى ${config.minPerBatch} أنشطة في كل تسجيل.`);
 
-  const types = (await query("SELECT name FROM activity_types")).rows.map(r => r.name);
+  const types = (await query("SELECT name FROM activity_types WHERE active")).rows.map(r => r.name);
   const { clean, errs } = await validateBatch(center, items, types);
   if (Object.keys(errs).length) throw new HttpError(422, "بعض الأنشطة تحتاج تصحيح", { errors: errs });
 

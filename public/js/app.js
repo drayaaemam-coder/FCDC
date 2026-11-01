@@ -1,12 +1,14 @@
 /* Reference data is loaded from /api/meta (see applyMeta) */
-let INST=[],CENTERS={},INST_BY={},GOVS=[],TYPES=[];
+let INST=[],CENTERS={},INST_BY={},GOVS=[],TYPES=[],AXES=[],OCCASIONS=[],MOVABLE_OCCASIONS=[];
+let DAY_START="07:30",DAY_END="17:00",PLAN_AHEAD=3,planSums=[];
 let MIN_PER_MONTH=3,MAX_PHOTOS=4,MIN_PER_BATCH=3,START="2024-09";
 function applyMeta(m){
   INST=m.institutions.map(i=>({id:i.id,name:i.name,c:i.centers}));
   CENTERS={};m.institutions.forEach(i=>i.centers.forEach(c=>CENTERS[c.id]=c));
   INST_BY=Object.fromEntries(INST.map(i=>[i.id,i]));
   GOVS=[...new Set(Object.values(CENTERS).map(c=>c.gov))];
-  TYPES=m.types;
+  TYPES=m.types;AXES=m.axes;OCCASIONS=m.occasions;MOVABLE_OCCASIONS=m.movableOccasions||[];
+  ({dayStart:DAY_START,dayEnd:DAY_END,planMonthsAhead:PLAN_AHEAD}=m.rules);
   ({minPerMonth:MIN_PER_MONTH,maxPhotos:MAX_PHOTOS,minPerBatch:MIN_PER_BATCH,startMonth:START}=m.rules);
 }
 const MONTHS=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
@@ -93,13 +95,13 @@ function resetRows(){rows=[newRow(),newRow(),newRow()];renderRows()}
 const isEmpty=r=>!r.title.trim()&&!r.type&&!r.photos.length&&!r.notes.trim();
 const isDone=r=>r.date&&r.type&&r.title.trim().length>=4;
 function rowHTML(r,i){
-  const typeOpts='<option value="">اختر النوع</option>'+TYPES.map(t=>`<option${t===r.type?" selected":""}>${esc(t)}</option>`).join("");
+  const typeOpts='<option value="">اختر المحور</option>'+TYPES.map(t=>`<option${t===r.type?" selected":""}>${esc(t)}</option>`).join("");
   const nIn=(f,l)=>`<div><label for="r${r.k}-${f}" class="opt">${l}</label><input type="number" min="0" inputmode="numeric" id="r${r.k}-${f}" data-k="${r.k}" data-f="${f}" value="${esc(r[f])}" placeholder="0"></div>`;
   return `<div class="act" data-row="${r.k}">
    <div class="act-h"><b>نشاط ${fmt(i+1)}</b><span class="act-st" data-st="${r.k}"></span>${rows.length>3?`<button type="button" class="rm" data-rm="${r.k}">حذف</button>`:""}</div>
    <div class="grid3">
      <div><label for="r${r.k}-date">التاريخ</label><input type="date" id="r${r.k}-date" data-k="${r.k}" data-f="date" value="${r.date}" max="${todayStr()}"></div>
-     <div><label for="r${r.k}-type">نوع النشاط</label><select id="r${r.k}-type" data-k="${r.k}" data-f="type">${typeOpts}</select></div>
+     <div><label for="r${r.k}-type">المحور</label><select id="r${r.k}-type" data-k="${r.k}" data-f="type">${typeOpts}</select></div>
      <div><label for="r${r.k}-title">عنوان النشاط</label><input type="text" id="r${r.k}-title" data-k="${r.k}" data-f="title" maxlength="140" value="${esc(r.title)}" placeholder="مثال: ندوة عن التغذية السليمة للأطفال"></div>
    </div>
    <div><label class="opt" style="font-weight:600;color:var(--fg)">عدد الحضور <span class="opt">(اختياري)</span></label><div class="cnts">${nIn("kids","أطفال")}${nIn("women","سيدات")}${nIn("men","رجال")}</div></div>
@@ -146,7 +148,7 @@ function dupCheck(list){
   const errs=new Map();const today=todayStr();
   list.forEach((r,i)=>{
     if(isEmpty(r))return;
-    if(!isDone(r)){errs.set(r.k,"أكمل التاريخ ونوع النشاط والعنوان (٤ أحرف على الأقل)، أو احذف هذا النشاط.");return}
+    if(!isDone(r)){errs.set(r.k,"أكمل التاريخ والمحور والعنوان (٤ أحرف على الأقل)، أو احذف هذا النشاط.");return}
     if(r.date>today){errs.set(r.k,"التاريخ لا يمكن أن يكون في المستقبل.");return}
     if(r.link&&!/^https?:\/\/\S+\.\S+/.test(r.link.trim())){errs.set(r.k,"رابط النشر غير صحيح. يجب أن يبدأ بـ https://");return}
     const n=norm(r.title);
@@ -225,7 +227,7 @@ function renderMine(){
 function fillSelects(){
 document.querySelectorAll(".sel-inst").forEach(s=>s.innerHTML=`<option value="">${s.id==="r-inst"?"كل المؤسسات (تقرير قومي)":"كل المؤسسات"}</option>`+INST.map(i=>`<option value="${i.id}">${esc(i.name)}</option>`).join(""));
 document.querySelectorAll(".sel-gov").forEach(s=>s.innerHTML='<option value="">كل المحافظات</option>'+GOVS.map(g=>`<option>${esc(g)}</option>`).join(""));
-$("#d-type").innerHTML='<option value="">كل الأنواع</option>'+TYPES.map(t=>`<option>${esc(t)}</option>`).join("");
+$("#d-type").innerHTML='<option value="">كل المحاور</option>'+TYPES.map(t=>`<option>${esc(t)}</option>`).join("");
 $("#u-inst").innerHTML=INST.map(i=>`<option value="${i.id}">${esc(i.name)}</option>`).join("");
 $("#m-period").innerHTML=monthList().map(k=>`<option value="${k}">${monthLabel(k)}</option>`).join("");
 fillPeriods();
@@ -255,18 +257,22 @@ function renderDash(){
     [fmt(sum(list,"kids")),"مشاركات أطفال",""],
     [fmt(sum(list,"women")+sum(list,"men")),"مشاركات بالغين",fmt(sum(list,"women"))+" سيدة · "+fmt(sum(list,"men"))+" رجل"],
   ].map(k=>`<div class="kpi"><div class="v num">${k[0]}</div><div class="l">${k[1]}</div>${k[2]?`<div class="s num">${k[2]}</div>`:""}</div>`).join("");
+  const planMonth=monthly?from.slice(0,7):null,planOf={};
+  if(planMonth)planSums.filter(x=>x.month===planMonth).forEach(x=>planOf[x.center]=x);
+  const planCell=ic=>{if(!planMonth)return '<span class="hint">—</span>';const n=ic.filter(c=>planOK(planOf[c.id])).length;
+    return `<div class="cov"><span class="num">${fmt(n)}</span><span class="bar"><i style="width:${pct(n,ic.length)}%"></i></span></div>`};
   const rowsH=[];
   INST.forEach(i=>{const ic=centers.filter(c=>c.inst===i.id);if(!ic.length)return;
     const il=list.filter(a=>a.inst===i.id),cov=ic.filter(c=>cnt[c.id]).length,last=base.filter(a=>a.inst===i.id).map(a=>a.date).sort().pop(),isOpen=open.has(i.id);
     rowsH.push(`<tr class="inst-row${isOpen?" open":""}" data-open="${i.id}" tabindex="0"><td><span class="caret">◂</span> ${esc(i.name)}</td><td class="num">${fmt(ic.length)}</td>
       <td><div class="cov"><span class="num">${fmt(cov)}</span><span class="bar"><i style="width:${pct(cov,ic.length)}%"></i></span></div></td>
-      <td class="num">${fmt(il.length)}</td><td class="num">${fmt(sum(il))}</td><td class="num">${last?shortDate(last):"—"}</td></tr>`);
+      <td>${planCell(ic)}</td><td class="num">${fmt(il.length)}</td><td class="num">${fmt(sum(il))}</td><td class="num">${last?shortDate(last):"—"}</td></tr>`);
     if(isOpen)ic.forEach(c=>{const cl=il.filter(a=>a.center===c.id),n=cl.length,l=base.filter(a=>a.center===c.id).map(a=>a.date).sort().pop();
       const pill=!n?'<span class="pill no">لم يسجل</span>':monthly&&n<MIN_PER_MONTH?`<span class="pill low">${fmt(n)} من ٣</span>`:'<span class="pill ok">سجّل</span>';
-      rowsH.push(`<tr class="sub"><td>${esc(c.vil)} <span class="hint">– ${esc(c.mk)}، ${esc(c.gov)}</span></td><td></td><td>${pill}</td><td class="num">${fmt(n)}</td><td class="num">${fmt(sum(cl))}</td><td class="num">${l?shortDate(l):"—"}</td></tr>`)});
+      rowsH.push(`<tr class="sub"><td>${esc(c.vil)} <span class="hint">– ${esc(c.mk)}، ${esc(c.gov)}</span></td><td></td><td>${pill}</td><td>${planMonth?planPill(planOf[c.id]):""}</td><td class="num">${fmt(n)}</td><td class="num">${fmt(sum(cl))}</td><td class="num">${l?shortDate(l):"—"}</td></tr>`)});
   });
-  $("#inst-tb").innerHTML=rowsH.join("")||'<tr><td colspan="6" class="hint">لا توجد مراكز ضمن هذا الاختيار.</td></tr>';
-  const bt=TYPES.map(t=>[t,list.filter(a=>a.type===t).length]).filter(x=>x[1]).sort((a,b)=>b[1]-a[1]),mx=Math.max(1,...bt.map(x=>x[1]));
+  $("#inst-tb").innerHTML=rowsH.join("")||'<tr><td colspan="7" class="hint">لا توجد مراكز ضمن هذا الاختيار.</td></tr>';
+  const bt=[...new Set([...TYPES,...list.map(a=>a.type)])].map(t=>[t,list.filter(a=>a.type===t).length]).filter(x=>x[1]).sort((a,b)=>b[1]-a[1]),mx=Math.max(1,...bt.map(x=>x[1]));
   $("#by-type").innerHTML=bt.length?bt.map(([t,n])=>`<div class="hbar"><span>${esc(t)}</span><span class="bar"><i style="width:${n/mx*100}%"></i></span><span class="n num">${fmt(n)}</span></div>`).join(""):'<div class="empty">لا أنشطة في هذه الفترة.</div>';
   const wk=[],now=new Date();now.setHours(0,0,0,0);const s0=new Date(now);s0.setDate(s0.getDate()-((s0.getDay()+1)%7));
   for(let k=11;k>=0;k--){const s=new Date(s0);s.setDate(s.getDate()-7*k);const e=new Date(s);e.setDate(e.getDate()+6);wk.push([s,ymd(s),ymd(e),0])}
@@ -282,7 +288,7 @@ function renderDash(){
   $("#feed").innerHTML=list.length?list.slice(0,feedLimit).map(a=>itemHTML(a,true)).join(""):'<div class="empty">لا توجد أنشطة ضمن هذا الاختيار. عند تسجيل المؤسسات لأنشطتها ستظهر هنا مباشرة.</div>';
   $("#more").hidden=list.length<=feedLimit;
   $("#csv").onclick=()=>{
-    const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"',head=["التاريخ","المؤسسة","المحافظة","المركز","القرية","كود المركز","نوع النشاط","العنوان","أطفال","سيدات","رجال","عدد الصور","رابط إعلامي","جهة شريكة","ملاحظات"];
+    const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"',head=["التاريخ","المؤسسة","المحافظة","المركز","القرية","كود المركز","المحور","العنوان","أطفال","سيدات","رجال","عدد الصور","رابط إعلامي","جهة شريكة","ملاحظات"];
     const lines=[head.map(q).join(",")].concat(list.map(a=>{const c=CENTERS[a.center]||{};return[a.date,INST_BY[a.inst]?.name,c.gov,c.mk,c.vil,a.center,a.type,a.title,a.kids||0,a.women||0,a.men||0,a.photos||0,a.link,a.partner,a.notes].map(q).join(",")}));
     saveFile("أنشطة-المراكز-"+todayStr()+".csv","﻿"+lines.join("\r\n"));
   };
@@ -379,7 +385,7 @@ async function buildReport(photoMap){
   const docd=list.filter(a=>a.photos).length;
   const chg=prevList.length?Math.round((list.length-prevList.length)/prevList.length*100):null;
   const scopeName=instId?INST_BY[instId].name:"كل المؤسسات المشغلة (المستوى القومي)";
-  const typeRank=TYPES.map(t=>[t,list.filter(a=>a.type===t).length]).filter(x=>x[1]).sort((a,b)=>b[1]-a[1]);
+  const typeRank=[...new Set([...TYPES,...list.map(a=>a.type)])].map(t=>[t,list.filter(a=>a.type===t).length]).filter(x=>x[1]).sort((a,b)=>b[1]-a[1]);
   const zero=centers.filter(c=>!cnt[c.id]),low=centers.filter(c=>cnt[c.id]&&cnt[c.id]<need);
   const cName=c=>`${esc(c.vil)} (${esc(c.mk)}، ${esc(c.gov)})${instId?"":" – "+esc(INST_BY[c.inst].name)}`;
 
@@ -412,11 +418,20 @@ async function buildReport(photoMap){
     h+=`<div class="r-sec">${sec("الأداء حسب المركز")}<div class="r-tw"><table class="r-t"><thead><tr><th>المركز</th><th>المحافظة</th><th>الأنشطة</th><th>الحد الأدنى</th><th>المشاركات</th><th>آخر نشاط</th></tr></thead><tbody>`+
     centers.map(c=>{const cl=list.filter(a=>a.center===c.id),l=cl.map(a=>a.date).sort().pop();return `<tr><td>${esc(c.vil)} – ${esc(c.mk)}</td><td>${esc(c.gov)}</td><td>${fmt(cl.length)}</td><td>${cl.length>=need?"متحقق":"غير متحقق"}</td><td>${fmt(sum(cl))}</td><td>${l?longDate(l):"—"}</td></tr>`}).join("")+`</tbody></table></div></div>`;
   }
+  const pl=planSums.filter(x=>planOK(x)&&spec.months.includes(x.month)&&(!instId||x.inst===instId));
+  if(pl.length){
+    const due=centers.length*Math.max(1,spec.elapsed.length),row=(name,cs)=>{const ids=new Set(cs.map(c=>c.id)),pp=pl.filter(x=>ids.has(x.center)),
+      planned=pp.reduce((s,x)=>s+x.items,0),done=list.filter(a=>ids.has(a.center)&&pp.some(x=>x.center===a.center&&a.date.startsWith(x.month))).length;
+      return `<tr><td>${name}</td><td>${fmt(pp.length)}</td><td>${fmt(planned)}</td><td>${fmt(done)}</td><td>${planned?fmt(pct(done,planned))+"%":"—"}</td></tr>`};
+    h+=`<div class="r-sec">${sec("الالتزام بالخطة الشهرية")}<p>قُدّمت ${fmt(pl.length)} خطة شهرية (مرسلة أو معتمدة) من أصل ${fmt(due)} خطة مستحقة لمراكز النطاق، تضمنت ${fmt(pl.reduce((s,x)=>s+x.items,0))} نشاطًا مخططًا. تُقارن الأنشطة المنفذة بالمخططة للمراكز التي قدّمت خططها فقط.</p>
+      <div class="r-tw"><table class="r-t"><thead><tr><th>${instId?"المركز":"المؤسسة"}</th><th>خطط مقدّمة</th><th>أنشطة مخططة</th><th>أنشطة منفذة</th><th>نسبة التنفيذ</th></tr></thead><tbody>`+
+      (instId?centers.map(c=>row(`${esc(c.vil)} – ${esc(c.mk)}`,[c])):INST.map(i=>row(esc(i.name),centers.filter(c=>c.inst===i.id)))).join("")+`</tbody></table></div></div>`;
+  }
   const govs=[...new Set(centers.map(c=>c.gov))];
   h+=`<div class="r-sec">${sec("التوزيع حسب المحافظة")}<div class="r-tw"><table class="r-t"><thead><tr><th>المحافظة</th><th>المراكز</th><th>سجّلت</th><th>الأنشطة</th><th>أطفال</th><th>سيدات</th><th>رجال</th></tr></thead><tbody>`+
     govs.map(g=>{const gc=centers.filter(c=>c.gov===g),gl=list.filter(a=>a.gov===g);return `<tr><td>${esc(g)}</td><td>${fmt(gc.length)}</td><td>${fmt(gc.filter(c=>cnt[c.id]).length)}</td><td>${fmt(gl.length)}</td><td>${fmt(sum(gl,"kids"))}</td><td>${fmt(sum(gl,"women"))}</td><td>${fmt(sum(gl,"men"))}</td></tr>`}).join("")+`</tbody></table></div></div>`;
   const tm=Math.max(1,...typeRank.map(x=>x[1]));
-  h+=`<div class="r-sec">${sec("الأنشطة حسب النوع")}<div class="r-bars">`+typeRank.map(([t,c])=>`<div class="rb"><span>${esc(t)}</span><span><i style="width:${c/tm*100}%"></i></span><span>${fmt(c)}</span></div>`).join("")+`</div></div>`;
+  h+=`<div class="r-sec">${sec("الأنشطة حسب المحور")}<div class="r-bars">`+typeRank.map(([t,c])=>`<div class="rb"><span>${esc(t)}</span><span><i style="width:${c/tm*100}%"></i></span><span>${fmt(c)}</span></div>`).join("")+`</div></div>`;
   let buckets;
   if(kind==="m"){const y=+v.slice(0,4),mo=+v.slice(5)-1,days=new Date(y,mo+1,0).getDate();buckets=[];for(let d=1;d<=days;d+=7){const e=Math.min(days,d+6);buckets.push([`${fmt(d)}–${fmt(e)}`,a=>{const dd=+a.date.slice(8);return dd>=d&&dd<=e}])}}
   else buckets=spec.months.map(m=>[MONTHS[+m.slice(5)-1].slice(0,kind==="y"?3:12),a=>a.date.startsWith(m)]);
@@ -447,15 +462,15 @@ $("#r-dl").onclick=async()=>{
   await saveFile(`تقرير-${name}-${$("#r-period").value}${instId?"-"+INST_BY[instId].name:""}.html`,standalone("تقرير "+name+" – "+$("#r-period").selectedOptions[0].textContent,body));
   btn.disabled=false;btn.textContent=old;
 };
-function standalone(title,body){
+function standalone(title,body,opts={}){
   const css=[...document.styleSheets].flatMap(s=>{try{return[...s.cssRules].map(r=>r.cssText).filter(t=>/^\.(r-|paper)/.test(t))}catch(e){return[]}}).join("\n");
   return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
 <style>:root{--f-display:"Cairo","IBM Plex Sans Arabic",Tahoma,sans-serif;--f-body:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;--line:#D6E2DF}
 body{margin:0;background:#EEF3F2;font-family:var(--f-body);color:#15302C;line-height:1.6}*{box-sizing:border-box}
 ${css}
-.paper{margin:24px auto;box-shadow:0 4px 20px rgba(0,0,0,.08)}
-@page{size:A4;margin:14mm}@media print{body{background:#fff}.paper{margin:0;border:0;box-shadow:none;max-width:none;padding:0}.r-sec{break-inside:avoid}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head>
+.paper{margin:24px auto;box-shadow:0 4px 20px rgba(0,0,0,.08)}${opts.landscape?".paper{max-width:1180px}":""}
+@page{size:A4${opts.landscape?" landscape":""};margin:12mm}@media print{body{background:#fff}.paper{margin:0;border:0;box-shadow:none;max-width:none;padding:0}.r-sec{break-inside:avoid}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head>
 <body><div class="paper">${body}</div></body></html>`;
 }
 
@@ -501,19 +516,20 @@ $("#pw-form").addEventListener("submit",async e=>{
 });
 
 /* ================= TABS & BOOT ================= */
-const VIEWS=["dash","reports","media","users","log"];
+const VIEWS=["dash","reports","media","users","plan","log"];
 function show(v){
   document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",t.dataset.view===v?"true":"false"));
   VIEWS.forEach(x=>$("#view-"+x).hidden=x!==v);
-  if(v==="dash")renderDash();if(v==="reports")renderReport();if(v==="media")renderMedia();if(v==="users")loadUsers();
+  if(v==="dash")renderDash();if(v==="reports")renderReport();if(v==="media")renderMedia();if(v==="users")loadUsers();if(v==="plan")renderPlanView();
 }
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>show(t.dataset.view));
 
 async function loadActs(){
   try{
-    acts=(await api("/api/activities")).activities;db=true;$("#conn").hidden=true;
+    const [a,p]=await Promise.all([api("/api/activities"),api("/api/plans")]);
+    acts=a.activities;planSums=p.plans;db=true;$("#conn").hidden=true;
   }catch(x){if(x.status===401)return;const c=$("#conn");c.hidden=false;c.className="notice bad";c.textContent="تعذر تحميل البيانات من الخادم. تحقق من الاتصال ثم أعد تحميل الصفحة.";}
-  mediaCache={};renderMine();checkAll();renderDash();renderReport();renderMedia();
+  mediaCache={};renderMine();checkAll();renderDash();renderReport();renderMedia();renderPlanOverview();
 }
 
 (async()=>{
@@ -521,7 +537,7 @@ async function loadActs(){
   isAdmin=me.role==="admin";
   $("#who").textContent=me.name+(isAdmin?" · إدارة المشروع":"");
   applyMeta(await api("/api/meta"));
-  fillSelects();restoreChoice();resetRows();renderSteps();
+  fillSelects();restoreChoice();resetRows();renderSteps();initPlan();
   if(isAdmin){document.querySelectorAll(".tab").forEach(t=>t.hidden=false);show("dash")}
   await loadActs();
   embedLogos();

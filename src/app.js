@@ -21,6 +21,7 @@ api.use("/auth", require("./routes/auth"));
 api.use("/meta", requireAuth, require("./routes/meta"));
 api.use("/activities", requireAuth, require("./routes/activities"));
 api.use("/photos", requireAuth, require("./routes/photos"));
+api.use("/plans", requireAuth, require("./routes/plans"));
 api.use("/users", requireAdmin, require("./routes/users"));
 api.use((_req, _res, next) => { const e = new Error("غير موجود"); e.status = 404; next(e); });
 app.use("/api", api);
