@@ -1,0 +1,16 @@
+# وضع التطوير على جهازك: يُدمج تلقائيًا مع docker-compose.yml عند تشغيل  docker compose up -d
+# الملفات تُقرأ مباشرة من فولدر المشروع على جهازك، فأي تعديل يظهر فورًا بدون إعادة بناء:
+#   - public/  (الواجهة)  → المتصفح يتحدث تلقائيًا
+#   - src/     (الخادم)   → الخادم يعيد التشغيل تلقائيًا
+# للتشغيل كنسخة إنتاج (على السيرفر الحقيقي) بدون هذا الملف:
+#   docker compose -f docker-compose.yml up -d --build
+services:
+  app:
+    command: sh -c "node src/db/init.js && node scripts/dev.js"
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./scripts:/app/scripts
+      - ./test:/app/test

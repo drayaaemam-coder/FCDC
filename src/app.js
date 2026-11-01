@@ -15,6 +15,26 @@ app.use((_req, res, next) => {
 
 app.get("/healthz", (_req, res) => res.json({ ok: true }));
 
+// ---- وضع التطوير: تحديث المتصفح تلقائيًا عند تعديل الملفات (npm run dev) ----
+const devClients = new Set();
+if (process.env.DEV_RELOAD) {
+  app.get("/__dev/events", (req, res) => {
+    res.set({ "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
+    res.flushHeaders(); res.write("retry: 1000\n\n");
+    devClients.add(res); req.on("close", () => devClients.delete(res));
+  });
+  process.on("message", m => { if (m === "reload") for (const c of devClients) c.write("event: reload\ndata: 1\n\n"); });
+}
+app.get("/__dev/reload.js", (_req, res) => {
+  res.type("application/javascript").set("Cache-Control", "no-store");
+  if (!process.env.DEV_RELOAD) return res.send("/* live reload is off (production) */");
+  // يعيد تحميل الصفحة عند تعديل الواجهة، أو عند عودة الخادم بعد إعادة تشغيله
+  res.send(`(()=>{let seen=false;const go=()=>{const es=new EventSource("/__dev/events");
+    es.onopen=()=>{if(seen)location.reload();seen=true};
+    es.addEventListener("reload",()=>location.reload());
+    es.onerror=()=>{es.close();setTimeout(go,800)}};go();console.info("وضع التطوير: الصفحة تتحدث تلقائيًا عند تعديل الملفات")})();`);
+});
+
 const api = express.Router();
 api.use(loadUser, requireAjaxHeader);
 api.use("/auth", require("./routes/auth"));
