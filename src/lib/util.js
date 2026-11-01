@@ -10,7 +10,7 @@ const isDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(new Date(s + "T00:00
   new Date(s + "T00:00:00Z").toISOString().slice(0, 10) === s;
 
 class HttpError extends Error {
-  constructor(status, message, extra) { super(message); this.status = status; this.extra = extra; }
+  constructor(status, message, extra) { super(message); this.status = status; this.extra = extra; this.expose = true; }
 }
 
 const ah = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);

@@ -17,6 +17,10 @@ const config = {
   minPerMonth: 3,
   maxPhotos: 4,
   startMonth: env.START_MONTH || "2024-09",
+  // الرابط العام للموقع (يُطبع في رمز QR للتحقق من التقارير). مثال: https://fcdc.example.org
+  publicUrl: env.PUBLIC_URL || "",
+  // مسار متصفح Chrome/Chromium لتوليد ملفات PDF (يُكتشف تلقائيًا إن تُرك فارغًا)
+  chromePath: env.CHROME_PATH || "",
   // ضوابط الخطة الشهرية: الفترة التشغيلية للمراكز، وعدد الشهور المسموح بالتخطيط لها مقدمًا
   dayStart: "07:30",
   dayEnd: "17:00",

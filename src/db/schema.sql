@@ -110,3 +110,64 @@ CREATE TABLE IF NOT EXISTS plan_items (
   CONSTRAINT plan_item_time_order CHECK (start_time < end_time)
 );
 CREATE INDEX IF NOT EXISTS plan_items_plan_idx ON plan_items(plan_id);
+
+-- ===== الدورة المستندية والاعتمادات =====
+-- اعتماد الأنشطة المسجلة: pending (قيد المراجعة) → approved (معتمد) أو returned (معاد للتعديل)
+ALTER TABLE activities ADD COLUMN IF NOT EXISTS status      VARCHAR(20)  NOT NULL DEFAULT 'pending';
+ALTER TABLE activities ADD COLUMN IF NOT EXISTS review_note VARCHAR(600) NOT NULL DEFAULT '';
+ALTER TABLE activities ADD COLUMN IF NOT EXISTS reviewed_by INT          REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE activities ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;
+ALTER TABLE activities ADD COLUMN IF NOT EXISTS updated_at  TIMESTAMPTZ;
+DO $$ BEGIN
+  ALTER TABLE activities ADD CONSTRAINT activities_status_chk CHECK (status IN ('pending','approved','returned'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+CREATE INDEX IF NOT EXISTS activities_status_idx ON activities(status, institution_id);
+CREATE INDEX IF NOT EXISTS activities_batch_idx  ON activities(batch_id);
+
+-- كود اعتماد الخطة الشهرية (يُطبع على الخطة ويمكن التحقق منه)
+ALTER TABLE monthly_plans ADD COLUMN IF NOT EXISTS approval_code VARCHAR(40) UNIQUE;
+
+-- التقارير والملفات الرسمية: تُحفظ نسختها كما قُدّمت، وتحصل على كود اعتماد عند الاعتماد
+CREATE TABLE IF NOT EXISTS reports (
+  id              SERIAL       PRIMARY KEY,
+  kind            VARCHAR(10)  NOT NULL CHECK (kind IN ('m','q','y','media')),
+  period          VARCHAR(10)  NOT NULL,                 -- 2026-11 | 2026-Q4 | 2026
+  institution_id  VARCHAR(10)  REFERENCES institutions(id), -- NULL = تقرير قومي (كل المؤسسات)
+  title           VARCHAR(300) NOT NULL,
+  body            TEXT         NOT NULL,                 -- محتوى التقرير كما قُدّم (HTML)
+  summary         JSONB        NOT NULL DEFAULT '{}',    -- أرقام رئيسية تظهر في صفحة التحقق
+  status          VARCHAR(20)  NOT NULL CHECK (status IN ('submitted','approved','returned')),
+  code            VARCHAR(40)  UNIQUE,
+  review_note     VARCHAR(600) NOT NULL DEFAULT '',
+  created_by      INT          REFERENCES users(id) ON DELETE SET NULL,
+  created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  reviewed_by     INT          REFERENCES users(id) ON DELETE SET NULL,
+  reviewed_at     TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS reports_lookup_idx ON reports(kind, period, institution_id);
+
+-- السجل الزمني لكل مستند (خطة / دفعة أنشطة / تقرير)
+CREATE TABLE IF NOT EXISTS doc_events (
+  id           SERIAL       PRIMARY KEY,
+  entity_type  VARCHAR(20)  NOT NULL CHECK (entity_type IN ('plan','batch','report')),
+  entity_id    VARCHAR(60)  NOT NULL,
+  action       VARCHAR(30)  NOT NULL,
+  actor_id     INT          REFERENCES users(id) ON DELETE SET NULL,
+  note         VARCHAR(600) NOT NULL DEFAULT '',
+  created_at   TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS doc_events_entity_idx ON doc_events(entity_type, entity_id, created_at);
+
+-- التنبيهات
+CREATE TABLE IF NOT EXISTS notifications (
+  id          SERIAL       PRIMARY KEY,
+  user_id     INT          NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind        VARCHAR(30)  NOT NULL,
+  title       VARCHAR(200) NOT NULL,
+  body        VARCHAR(600) NOT NULL DEFAULT '',
+  link        JSONB        NOT NULL DEFAULT '{}',
+  created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  read_at     TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS notifications_user_idx ON notifications(user_id, created_at DESC);

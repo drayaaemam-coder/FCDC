@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>التحقق من كود الاعتماد</title>
+<link rel="icon" href="/img/logo5.png">
+<link rel="stylesheet" href="/css/fonts.css">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="band"><div class="wrap logos">
+  <img src="/img/logo1.png" alt="وزارة التضامن الاجتماعي">
+  <img src="/img/logo2.png" alt="وزارة التربية والتعليم والتعليم الفني">
+  <img src="/img/logo3.png" alt="وزارة التنمية المحلية والبيئة">
+  <img src="/img/logo4.png" alt="التحالف الوطني للعمل الأهلي التنموي">
+  <img src="/img/logo5.png" class="wide" alt="مراكز تنمية الأسرة والطفولة">
+</div></div>
+<header style="position:static"><div class="wrap"><div class="hd" style="padding-block:14px">
+  <div class="brand"><small>التحالف الوطني للعمل الأهلي التنموي · شراكة من أجل الإنسانية</small><h1>التحقق من اعتماد مستند</h1></div>
+</div></div></header>
+<main class="wrap">
+  <form class="login" id="f" style="max-width:560px">
+    <h2>كود الاعتماد</h2>
+    <div><label for="code">أدخل الكود المطبوع على التقرير أو الخطة</label><input type="text" id="code" dir="ltr" placeholder="FCDC-R2611-XXXX-XXXX" autocomplete="off"></div>
+    <button class="btn" type="submit">تحقق</button>
+    <div id="out" role="status"></div>
+  </form>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+const fmtDate = s => s ? new Date(s).toLocaleString("ar-EG", { dateStyle: "long", timeStyle: "short", timeZone: "Africa/Cairo" }) : "—";
+async function check(code) {
+  const out = $("#out"); out.innerHTML = '<p class="hint">جارٍ التحقق…</p>';
+  try {
+    const d = await (await fetch("/api/public/verify/" + encodeURIComponent(code.trim().toUpperCase()))).json();
+    if (!d.valid) { out.innerHTML = '<div class="notice bad"><b>الكود غير صحيح أو غير معتمد.</b> تأكد من كتابته كما هو مطبوع، وإن تكرر الخطأ فالمستند غير صادر من المنظومة.</div>'; return; }
+    const sum = Object.entries(d.summary || {}).map(([k, v]) => `<div class="ps-row"><span>${esc(k)}</span><b class="num">${esc(typeof v === "number" ? v.toLocaleString("ar-EG") : v)}</b></div>`).join("");
+    out.innerHTML = `<div class="verified"><div class="vbadge">✓ مستند معتمد وصادر من منظومة متابعة أنشطة مراكز تنمية الأسرة والطفولة</div>
+      <div class="ps-row"><span>نوع المستند</span><b>${esc(d.docType)}</b></div>
+      <div class="ps-row"><span>العنوان</span><b>${esc(d.title)}</b></div>
+      <div class="ps-row"><span>النطاق</span><b>${esc(d.scope)}</b></div>
+      <div class="ps-row"><span>اعتمده</span><b>${esc(d.approver || "إدارة المشروع")}</b></div>
+      <div class="ps-row"><span>تاريخ الاعتماد</span><b>${fmtDate(d.approvedAt)}</b></div>
+      <div class="ps-row"><span>كود الاعتماد</span><b dir="ltr">${esc(d.code)}</b></div>
+      ${sum ? `<h3 style="margin-top:12px;font-size:14px">الأرقام الرئيسية وقت الاعتماد</h3>${sum}` : ""}</div>`;
+  } catch (e) { out.innerHTML = '<div class="notice bad">تعذر الاتصال بالخادم.</div>'; }
+}
+$("#f").addEventListener("submit", e => { e.preventDefault(); if ($("#code").value.trim()) check($("#code").value); });
+const m = location.pathname.match(/^\/verify\/([^/]+)/);
+if (m) { $("#code").value = decodeURIComponent(m[1]); check($("#code").value); }
+</script>
+</body>
+</html>

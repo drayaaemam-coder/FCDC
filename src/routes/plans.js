@@ -4,6 +4,7 @@ const config = require("../config");
 const { query, tx } = require("../db/pool");
 const { norm, isDate, todayCairo, HttpError, ah } = require("../lib/util");
 const { requireAdmin } = require("../middleware/auth");
+const { logEvent, notify, centerInfo, newCode, approvalInfo, monthLabel, ar } = require("../lib/workflow");
 
 const isMonth = s => /^\d{4}-(0[1-9]|1[0-2])$/.test(String(s || ""));
 const isTime = s => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(s || ""));
@@ -14,7 +15,7 @@ const weekday = d => new Date(d + "T00:00:00Z").getUTCDay();
 const toInt = v => { const n = Number(v); return Number.isInteger(n) && n >= 0 && n <= 100000 ? n : NaN; };
 
 const PLAN_COLS = `p.id, p.center_id AS center, p.institution_id AS inst, p.plan_month AS month, p.status,
-  p.admin_note AS note, p.updated_at AS "updatedAt", p.submitted_at AS "submittedAt", p.reviewed_at AS "reviewedAt",
+  p.admin_note AS note, p.approval_code AS code, p.updated_at AS "updatedAt", p.submitted_at AS "submittedAt", p.reviewed_at AS "reviewedAt",
   ub.name AS "updatedByName", rb.name AS "reviewedByName"`;
 const ITEM_COLS = `id, title, type_name AS type, target_group AS target, expected_count AS expected, item_date AS date,
   to_char(start_time,'HH24:MI') AS start, to_char(end_time,'HH24:MI') AS "end", partner, responsible`;
@@ -57,6 +58,7 @@ router.get("/:center/:month", ah(async (req, res) => {
   if (!isMonth(req.params.month)) throw new HttpError(422, "الشهر غير صحيح");
   const c = await loadCenter(req, req.params.center);
   const plan = await loadPlan({ query }, c.id, req.params.month);
+  if (plan && plan.code) plan.approval = await approvalInfo(req, plan.code);
   res.json({ plan: plan || { id: null, center: c.id, inst: c.institution_id, month: req.params.month, status: "none", note: "", items: [] } });
 }));
 
@@ -126,7 +128,18 @@ router.put("/:center/:month", ah(async (req, res) => {
         `INSERT INTO plan_items (plan_id, title, type_name, target_group, expected_count, item_date, start_time, end_time, partner, responsible, sort_order)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
         [planId, r.title, r.type, r.target, r.expected, r.date, r.start, r.end, r.partner, r.responsible, i]);
-    return loadPlan(db, c.id, month);
+    const saved = await loadPlan(db, c.id, month);
+    if (!existing) await logEvent(db, "plan", planId, "created", req.user.id, `${ar(clean.length)} أنشطة`);
+    if (submit) {
+      await logEvent(db, "plan", planId, existing && existing.status === "returned" ? "resubmitted" : "submitted", req.user.id, `${ar(clean.length)} أنشطة`);
+      const ci = await centerInfo(db, c.id);
+      await notify(db, { admins: true }, {
+        kind: "plan_submitted", title: `خطة ${monthLabel(month)} بانتظار اعتمادك`,
+        body: `${ci.inst_name} · ${ci.village}: ${ar(clean.length)} أنشطة`, link: { view: "plan", center: c.id, month },
+      }, req.user.id);
+    } else if (existing && isAdmin && ["submitted", "approved"].includes(existing.status))
+      await logEvent(db, "plan", planId, "edited", req.user.id, "تعديل من إدارة المشروع");
+    return saved;
   });
   res.json({ plan });
 }));
@@ -141,10 +154,26 @@ router.post("/:id/review", requireAdmin, ah(async (req, res) => {
   if (!p) throw new HttpError(404, "الخطة غير موجودة");
   if (action === "approve" && p.status !== "submitted") throw new HttpError(409, "يمكن اعتماد الخطط المرسلة فقط");
   if (action === "return" && !["submitted", "approved"].includes(p.status)) throw new HttpError(409, "الخطة ليست مرسلة");
-  await query(
-    `UPDATE monthly_plans SET status=$1, admin_note=$2, reviewed_by=$3, reviewed_at=now() WHERE id=$4`,
-    [action === "approve" ? "approved" : "returned", action === "approve" ? "" : note, req.user.id, p.id]);
-  res.json({ plan: await loadPlan({ query }, p.center_id, p.plan_month) });
+  await tx(async db => {
+    let code = null;
+    if (action === "approve") {
+      const { rows: cur } = await db.query("SELECT approval_code FROM monthly_plans WHERE id=$1", [p.id]);
+      code = cur[0].approval_code || newCode("P");
+    }
+    await db.query(
+      `UPDATE monthly_plans SET status=$1, admin_note=$2, reviewed_by=$3, reviewed_at=now(),
+         approval_code = COALESCE($5::varchar, approval_code) WHERE id=$4`,
+      [action === "approve" ? "approved" : "returned", action === "approve" ? "" : note, req.user.id, p.id, code]);
+    await logEvent(db, "plan", p.id, action === "approve" ? "approved" : "returned", req.user.id, action === "approve" ? `كود الاعتماد ${code}` : note);
+    const ci = await centerInfo(db, p.center_id);
+    await notify(db, { institution: ci.institution_id }, action === "approve"
+      ? { kind: "plan_approved", title: `اعتُمدت خطة ${monthLabel(p.plan_month)}`, body: `${ci.village} · كود الاعتماد ${code}`, link: { view: "plan", center: p.center_id, month: p.plan_month } }
+      : { kind: "plan_returned", title: `أُعيدت خطة ${monthLabel(p.plan_month)} للتعديل`, body: `${ci.village}: ${note}`, link: { view: "plan", center: p.center_id, month: p.plan_month } },
+    req.user.id);
+  });
+  const plan = await loadPlan({ query }, p.center_id, p.plan_month);
+  if (plan.code) plan.approval = await approvalInfo(req, plan.code);
+  res.json({ plan });
 }));
 
 module.exports = router;

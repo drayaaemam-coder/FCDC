@@ -7,7 +7,7 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "db:init": "node src/db/init.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test --test-concurrency=1 test/*.test.js"
   },
   "engines": {
     "node": ">=18"
@@ -15,13 +15,18 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
+    "@fontsource/cairo": "^5.3.0",
+    "@fontsource/ibm-plex-sans-arabic": "^5.3.0",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
+    "docx": "^9.15.1",
     "dotenv": "^18.0.9",
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.2",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.5.0",
-    "pg": "^8.23.1"
+    "pg": "^8.23.1",
+    "puppeteer-core": "^25.16.0",
+    "qrcode": "^1.5.4"
   }
 }

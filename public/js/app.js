@@ -189,7 +189,7 @@ $("#f").addEventListener("submit",async e=>{
       fd.append(`p${i}_${j}_full`,await dataURLtoBlob(p.full),"full.jpg");fd.append(`p${i}_${j}_thumb`,await dataURLtoBlob(p.thumb),"thumb.jpg");
     }
     await api("/api/activities/batch",{method:"POST",body:fd});
-    toast(`تم حفظ ${fmt(good.length)} أنشطة`);resetRows();await loadActs();
+    toast(isAdmin?`تم حفظ ${fmt(good.length)} أنشطة واعتمادها`:`تم إرسال ${fmt(good.length)} أنشطة لإدارة المشروع للاعتماد`);resetRows();await loadActs();if(typeof pollNotifications==="function")pollNotifications();
   }catch(x){
     if(x.data&&x.data.errors){Object.entries(x.data.errors).forEach(([i,m])=>{if(good[i])good[i].err=m});renderRows();
       msg.textContent="لم يتم الحفظ: "+x.message;}
@@ -198,20 +198,24 @@ $("#f").addEventListener("submit",async e=>{
   }finally{saving=false;checkAll()}
 });
 
+const ACT_STATUS={pending:["قيد المراجعة","sub"],approved:["معتمد","ok"],returned:["معاد للتعديل","no"]};
+const approvedActs=()=>acts.filter(a=>a.status==="approved");
 function itemHTML(a,where){
   const d=new Date(a.date+"T00:00"),c=CENTERS[a.center]||{};
   const ppl=[a.kids?fmt(a.kids)+" طفل":"",a.women?fmt(a.women)+" سيدة":"",a.men?fmt(a.men)+" رجل":""].filter(Boolean).join(" · ");
-  const canDel=isAdmin||(me&&a.by===me.id);
+  const canDel=isAdmin||(me&&a.by===me.id&&a.status!=="approved");
+  const canEdit=isAdmin||(me&&a.inst===me.institution_id&&a.status!=="approved");
+  const st=ACT_STATUS[a.status]||ACT_STATUS.pending;
   return `<div class="item"><div class="date num"><b>${fmt(d.getDate())}</b><span>${MONTHS[d.getMonth()]||""}</span></div>
    <div style="min-width:0"><div class="t">${esc(a.title)}</div>
-    <div class="meta"><span class="tag">${esc(a.type)}</span>${a.photos?`<span class="tag o">${fmt(a.photos)} صور</span>`:""}${where?`<span>${esc(c.vil||"")} – ${esc(c.mk||"")} (${esc(c.gov||"")})</span><span>${esc(INST_BY[a.inst]?.name||"")}</span>`:""}${ppl?`<span class="num">الحضور: ${ppl}</span>`:""}${a.partner?`<span>بالشراكة مع ${esc(a.partner)}</span>`:""}${a.byName?`<span>سجّله: ${esc(a.byName)}</span>`:""}</div>
-    ${a.notes?`<div class="note">${esc(a.notes)}</div>`:""}${a.link?`<div class="note"><a href="${esc(a.link)}" target="_blank" rel="noopener" dir="ltr">${esc(a.link.slice(0,70))}</a></div>`:""}</div>
-   <div>${canDel?`<button class="del" data-del="${a._id}">حذف</button>`:""}</div></div>`;
+    <div class="meta"><span class="pill ${st[1]}">${st[0]}</span><span class="tag">${esc(a.type)}</span>${a.photos?`<span class="tag o">${fmt(a.photos)} صور</span>`:""}${where?`<span>${esc(c.vil||"")} – ${esc(c.mk||"")} (${esc(c.gov||"")})</span><span>${esc(INST_BY[a.inst]?.name||"")}</span>`:""}${ppl?`<span class="num">الحضور: ${ppl}</span>`:""}${a.partner?`<span>بالشراكة مع ${esc(a.partner)}</span>`:""}${a.byName?`<span>سجّله: ${esc(a.byName)}</span>`:""}</div>
+    ${a.status==="returned"&&a.reviewNote?`<div class="note-ret">ملاحظات الإدارة: ${esc(a.reviewNote)}</div>`:""}${a.notes?`<div class="note">${esc(a.notes)}</div>`:""}${a.link?`<div class="note"><a href="${esc(a.link)}" target="_blank" rel="noopener" dir="ltr">${esc(a.link.slice(0,70))}</a></div>`:""}</div>
+   <div class="item-a">${canEdit?`<button class="del" data-edit="${a._id}">تعديل</button>`:""}${canDel?`<button class="del" data-del="${a._id}">حذف</button>`:""}</div></div>`;
 }
 document.addEventListener("click",async e=>{
   const b=e.target.closest("[data-del]");if(!b)return;
   if(!b.classList.contains("confirm")){b.classList.add("confirm");b.textContent="تأكيد الحذف";setTimeout(()=>{if(b.isConnected){b.classList.remove("confirm");b.textContent="حذف"}},4000);return}
-  try{await api("/api/activities/"+encodeURIComponent(b.dataset.del),{method:"DELETE"});toast("تم حذف النشاط");await loadActs()}
+  try{await api("/api/activities/"+encodeURIComponent(b.dataset.del),{method:"DELETE"});toast("تم حذف النشاط");await loadActs();if(typeof loadTasks==="function")loadTasks()}
   catch(x){toast(x.status&&x.status<500?x.message:"تعذر الحذف")}
 });
 function renderMine(){
@@ -236,7 +240,7 @@ function monthList(){const out=[],now=new Date();let y=now.getFullYear(),m=now.g
 const monthLabel=k=>MONTHS[+k.slice(5)-1]+" "+k.slice(0,4);
 
 /* ================= DASHBOARD ================= */
-["d-period","d-inst","d-gov","d-type"].forEach(id=>$("#"+id).addEventListener("change",()=>{feedLimit=30;renderDash()}));
+["d-period","d-inst","d-gov","d-type","d-status"].forEach(id=>$("#"+id).addEventListener("change",()=>{feedLimit=30;renderDash()}));
 const open=new Set();let feedLimit=30;
 function range(p){const now=new Date();
   if(p==="this")return[ymd(new Date(now.getFullYear(),now.getMonth(),1)),ymd(now)];
@@ -245,14 +249,14 @@ function range(p){const now=new Date();
   return["0000","9999"]}
 function renderDash(){
   if($("#view-dash").hidden)return;
-  const f={inst:$("#d-inst").value,gov:$("#d-gov").value,type:$("#d-type").value},p=$("#d-period").value,monthly=p==="this"||p==="last";
+  const f={inst:$("#d-inst").value,gov:$("#d-gov").value,type:$("#d-type").value,status:$("#d-status").value},p=$("#d-period").value,monthly=p==="this"||p==="last";
   const centers=Object.values(CENTERS).filter(c=>(!f.inst||c.inst===f.inst)&&(!f.gov||c.gov===f.gov));
-  const base=acts.filter(a=>(!f.inst||a.inst===f.inst)&&(!f.gov||a.gov===f.gov)&&(!f.type||a.type===f.type));
+  const base=acts.filter(a=>(!f.inst||a.inst===f.inst)&&(!f.gov||a.gov===f.gov)&&(!f.type||a.type===f.type)&&(!f.status||a.status===f.status));
   const[from,to]=range(p),list=base.filter(a=>a.date>=from&&a.date<=to);
   const cnt={};list.forEach(a=>cnt[a.center]=(cnt[a.center]||0)+1);
   const covered=centers.filter(c=>cnt[c.id]).length,met=centers.filter(c=>(cnt[c.id]||0)>=MIN_PER_MONTH).length;
   $("#kpis").innerHTML=[
-    [fmt(list.length),"نشاط مسجل",fmt(list.filter(a=>a.photos).length)+" منها موثق بالصور"],
+    [fmt(list.length),"نشاط مسجل",`${fmt(list.filter(a=>a.status==="approved").length)} معتمد · ${fmt(list.filter(a=>a.status==="pending").length)} قيد المراجعة · ${fmt(list.filter(a=>a.photos).length)} موثق بالصور`],
     [fmt(covered)+" / "+fmt(centers.length),"مراكز سجّلت أنشطة",monthly?fmt(met)+" مركز حقق الحد الأدنى (٣)":fmt(pct(covered,centers.length))+"% من المراكز"],
     [fmt(sum(list,"kids")),"مشاركات أطفال",""],
     [fmt(sum(list,"women")+sum(list,"men")),"مشاركات بالغين",fmt(sum(list,"women"))+" سيدة · "+fmt(sum(list,"men"))+" رجل"],
@@ -288,8 +292,8 @@ function renderDash(){
   $("#feed").innerHTML=list.length?list.slice(0,feedLimit).map(a=>itemHTML(a,true)).join(""):'<div class="empty">لا توجد أنشطة ضمن هذا الاختيار. عند تسجيل المؤسسات لأنشطتها ستظهر هنا مباشرة.</div>';
   $("#more").hidden=list.length<=feedLimit;
   $("#csv").onclick=()=>{
-    const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"',head=["التاريخ","المؤسسة","المحافظة","المركز","القرية","كود المركز","المحور","العنوان","أطفال","سيدات","رجال","عدد الصور","رابط إعلامي","جهة شريكة","ملاحظات"];
-    const lines=[head.map(q).join(",")].concat(list.map(a=>{const c=CENTERS[a.center]||{};return[a.date,INST_BY[a.inst]?.name,c.gov,c.mk,c.vil,a.center,a.type,a.title,a.kids||0,a.women||0,a.men||0,a.photos||0,a.link,a.partner,a.notes].map(q).join(",")}));
+    const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"',head=["التاريخ","المؤسسة","المحافظة","المركز","القرية","كود المركز","المحور","العنوان","حالة الاعتماد","أطفال","سيدات","رجال","عدد الصور","رابط إعلامي","جهة شريكة","ملاحظات"];
+    const lines=[head.map(q).join(",")].concat(list.map(a=>{const c=CENTERS[a.center]||{};return[a.date,INST_BY[a.inst]?.name,c.gov,c.mk,c.vil,a.center,a.type,a.title,(ACT_STATUS[a.status]||[""])[0],a.kids||0,a.women||0,a.men||0,a.photos||0,a.link,a.partner,a.notes].map(q).join(",")}));
     saveFile("أنشطة-المراكز-"+todayStr()+".csv","﻿"+lines.join("\r\n"));
   };
 }
@@ -306,8 +310,9 @@ async function fetchThumbs(from,to){
 async function renderMedia(){
   if($("#view-media").hidden||!db)return;
   const m=$("#m-period").value,f={inst:$("#m-inst").value,gov:$("#m-gov").value},from=m+"-01",to=m+"-31";
-  const list=acts.filter(a=>a.date>=from&&a.date<=to&&(!f.inst||a.inst===f.inst)&&(!f.gov||a.gov===f.gov));
+  const list=approvedActs().filter(a=>a.date>=from&&a.date<=to&&(!f.inst||a.inst===f.inst)&&(!f.gov||a.gov===f.gov));
   const doc=list.filter(a=>a.photos||a.link);
+  renderDocBar("m-bar");
   $("#m-kpis").innerHTML=[[fmt(list.length),"نشاط في الشهر",""],[fmt(list.filter(a=>a.photos).length),"نشاط موثق بالصور",fmt(pct(list.filter(a=>a.photos).length,list.length))+"% من الأنشطة"],
     [fmt(sum(list,"photos")),"صورة مرفوعة",""],[fmt(list.filter(a=>a.link).length),"رابط نشر إعلامي",""]]
     .map(k=>`<div class="kpi"><div class="v num">${k[0]}</div><div class="l">${k[1]}</div>${k[2]?`<div class="s num">${k[2]}</div>`:""}</div>`).join("");
@@ -328,12 +333,11 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-lb]"
 $("#lb-x").onclick=()=>$("#lb").hidden=true;$("#lb").addEventListener("click",e=>{if(e.target.id==="lb")$("#lb").hidden=true});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")$("#lb").hidden=true});
 async function fullImages(ids,onStep){const out={};let n=0;for(const id of ids){try{const r=await fetch(fullURL(id),{credentials:"same-origin"});if(r.ok)out[id]=await toDataURL(await r.blob())}catch(e){}onStep&&onStep(++n,ids.length)}return out}
-$("#m-dl").onclick=async()=>{
+async function mediaDoc(){
   const m=$("#m-period").value,inst=$("#m-inst").value,gov=$("#m-gov").value;
-  if(!mediaShown.length){toast("لا يوجد توثيق في هذا الاختيار");return}
-  const btn=$("#m-dl"),old=btn.textContent;btn.disabled=true;
+  if(!mediaShown.length){toast("لا يوجد توثيق معتمد في هذا الاختيار");return null}
   const ids=mediaShown.flatMap(a=>a.mediaIds||[]);
-  const full=await fullImages(ids,(n,t)=>btn.textContent=`تجهيز الصور ${fmt(n)}/${fmt(t)}`);
+  const full=await fullImages(ids);
   const scope=(inst?INST_BY[inst].name:"كل المؤسسات")+(gov?" · محافظة "+gov:"");
   const body=`${coverBand()}<div class="r-cover"><div class="r-eyebrow">ملف التوثيق الإعلامي</div><h1>التوثيق الإعلامي لأنشطة مراكز تنمية الأسرة والطفولة</h1><div class="r-sub">${monthLabel(m)} · ${esc(scope)}</div>
    <div class="r-meta"><span>${fmt(mediaShown.length)} نشاط موثق</span><span>${fmt(ids.length)} صورة</span><span>تاريخ الإصدار: ${longDate(todayStr())}</span></div></div>`+
@@ -341,9 +345,8 @@ $("#m-dl").onclick=async()=>{
    ${(a.mediaIds||[]).length?`<div class="r-hl">${a.mediaIds.map(id=>full[id]?`<figure><img src="${full[id]}" alt=""></figure>`:"").join("")}</div>`:""}
    ${a.link?`<p style="font-size:13px">رابط النشر: <a href="${esc(a.link)}" dir="ltr">${esc(a.link)}</a></p>`:""}</div>`}).join("")+
    `<div class="r-note">الصور مرفوعة من المؤسسات المشغلة عبر منظومة المتابعة. يُراعى الحصول على موافقة أولياء الأمور قبل النشر العام لأي صورة يظهر فيها أطفال.</div>`;
-  await saveFile(`ملف-التوثيق-الإعلامي-${m}.html`,standalone("ملف التوثيق الإعلامي "+monthLabel(m),body));
-  btn.disabled=false;btn.textContent=old;
-};
+  return{title:"ملف التوثيق الإعلامي "+monthLabel(m)+" – "+scope,body,summary:{"أنشطة موثقة":mediaShown.length,"صور":ids.length},filename:`ملف-التوثيق-الإعلامي-${m}`};
+}
 
 /* ================= REPORTS ================= */
 function periodOptions(kind){
@@ -377,10 +380,13 @@ async function buildReport(photoMap){
   const pLabel=$("#r-period").selectedOptions[0]?.textContent||v;
   const centers=Object.values(CENTERS).filter(c=>!instId||c.inst===instId);
   const inScope=a=>!instId||a.inst===instId;
-  const list=acts.filter(a=>inScope(a)&&spec.months.includes(a.date.slice(0,7)));
-  const prevList=acts.filter(a=>inScope(a)&&spec.prev.includes(a.date.slice(0,7)));
+  const A=approvedActs(),list=A.filter(a=>inScope(a)&&spec.months.includes(a.date.slice(0,7)));
+  const prevList=A.filter(a=>inScope(a)&&spec.prev.includes(a.date.slice(0,7)));
+  const pendingN=acts.filter(a=>a.status!=="approved"&&inScope(a)&&spec.months.includes(a.date.slice(0,7))).length;
+  lastReportSummary={"الأنشطة المعتمدة":list.length,"مراكز سجّلت أنشطة":`${fmt(centers.filter(c=>list.some(a=>a.center===c.id)).length)} من ${fmt(centers.length)}`,"إجمالي المشاركات":sum(list)};
   const need=MIN_PER_MONTH*Math.max(1,spec.elapsed.length);
   const cnt={};list.forEach(a=>cnt[a.center]=(cnt[a.center]||0)+1);
+  lastPendingN=pendingN;
   const covered=centers.filter(c=>cnt[c.id]).length,met=centers.filter(c=>(cnt[c.id]||0)>=need).length;
   const docd=list.filter(a=>a.photos).length;
   const chg=prevList.length?Math.round((list.length-prevList.length)/prevList.length*100):null;
@@ -445,32 +451,39 @@ async function buildReport(photoMap){
     return `<figure>${src?`<img src="${src}" alt="">`:""}<figcaption><b>${esc(a.title)}</b>${longDate(a.date)} · ${esc(c.vil)}، ${esc(c.gov)}<br>${esc(a.type)}${total(a)?` · ${fmt(total(a))} مشارك`:""}</figcaption></figure>`}).join("")+`</div></div>`;
   return h+methodNote(need,spec);
 }
-function methodNote(need,spec){return `<div class="r-note">ملاحظات منهجية: البيانات مُبلَّغ عنها من المؤسسات المشغلة عبر منظومة المتابعة ولم يُتحقق منها ميدانيًا. أعداد الحضور مشاركات وليست مستفيدين فريدين، إذ قد يشارك الشخص نفسه في أكثر من نشاط. الحد الأدنى = ٣ أنشطة لكل مركز عن كل شهر منقضٍ في الفترة (${fmt(need)} نشاط لهذه الفترة).</div>`}
+let lastReportSummary={},lastPendingN=0;
+function methodNote(need,spec){return `<div class="r-note">ملاحظات منهجية: يشمل التقرير الأنشطة المعتمدة من إدارة المشروع فقط${lastPendingN?` (${fmt(lastPendingN)} نشاط في الفترة قيد المراجعة أو معاد للتعديل غير مدرج)`:""}. البيانات مُبلَّغ عنها من المؤسسات المشغلة عبر منظومة المتابعة ولم يُتحقق منها ميدانيًا. أعداد الحضور مشاركات وليست مستفيدين فريدين، إذ قد يشارك الشخص نفسه في أكثر من نشاط. الحد الأدنى = ٣ أنشطة لكل مركز عن كل شهر منقضٍ في الفترة (${fmt(need)} نشاط لهذه الفترة).</div>`}
 async function renderReport(){
   if($("#view-reports").hidden)return;
   const el=$("#report");el.innerHTML=await buildReport(reportPhotos);
   // fetch thumbnails for highlights lazily, then re-render once
   const kind=$("#r-kind").value,spec=periodSpec(kind,$("#r-period").value);
+  renderDocBar("r-bar");
   if(db&&acts.some(a=>a.photos&&spec.months.includes(a.date.slice(0,7)))){try{const th=await fetchThumbs(spec.from,spec.to);let add=false;for(const k in th)if(!reportPhotos[k]){reportPhotos[k]=th[k];add=true}if(add)el.innerHTML=await buildReport(reportPhotos)}catch(e){}}
 }
-$("#r-dl").onclick=async()=>{
-  const btn=$("#r-dl"),old=btn.textContent;btn.disabled=true;btn.textContent="جارٍ التجهيز…";
-  const spec=periodSpec($("#r-kind").value,$("#r-period").value),instId=$("#r-inst").value;
-  const hlIds=acts.filter(a=>a.photos&&(!instId||a.inst===instId)&&spec.months.includes(a.date.slice(0,7))).map(a=>a.mediaIds[0]).slice(0,30);
-  const full=await fullImages(hlIds);
-  const body=await buildReport(full),name=$("#r-kind").selectedOptions[0].textContent;
-  await saveFile(`تقرير-${name}-${$("#r-period").value}${instId?"-"+INST_BY[instId].name:""}.html`,standalone("تقرير "+name+" – "+$("#r-period").selectedOptions[0].textContent,body));
-  btn.disabled=false;btn.textContent=old;
-};
+async function reportDoc(){
+  const kind=$("#r-kind").value,v=$("#r-period").value,instId=$("#r-inst").value,spec=periodSpec(kind,v);
+  const hlIds=approvedActs().filter(a=>a.photos&&(!instId||a.inst===instId)&&spec.months.includes(a.date.slice(0,7))).map(a=>a.mediaIds[0]).slice(0,30);
+  const body=await buildReport(await fullImages(hlIds)),name={m:"التقرير الشهري",q:"التقرير الربع سنوي",y:"التقرير السنوي"}[kind],pl=$("#r-period").selectedOptions[0].textContent;
+  const scope=instId?INST_BY[instId].name:"كل المؤسسات";
+  return{title:`${name} – ${pl} – ${scope}`,body,summary:{...lastReportSummary},filename:`تقرير-${name}-${v}${instId?"-"+INST_BY[instId].name:""}`};
+}
 function standalone(title,body,opts={}){
   const css=[...document.styleSheets].flatMap(s=>{try{return[...s.cssRules].map(r=>r.cssText).filter(t=>/^\.(r-|paper)/.test(t))}catch(e){return[]}}).join("\n");
-  return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>
+  const mark=opts.code?`كود الاعتماد: ${opts.code}`:opts.draft?"مسودة غير معتمدة":"";
+  const box=`font-family:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;font-size:7.5pt;color:#5A6F6B`;
+  return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="script-src 'none'"><title>${esc(title)}</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
 <style>:root{--f-display:"Cairo","IBM Plex Sans Arabic",Tahoma,sans-serif;--f-body:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;--line:#D6E2DF}
 body{margin:0;background:#EEF3F2;font-family:var(--f-body);color:#15302C;line-height:1.6}*{box-sizing:border-box}
 ${css}
 .paper{margin:24px auto;box-shadow:0 4px 20px rgba(0,0,0,.08)}${opts.landscape?".paper{max-width:1180px}":""}
-@page{size:A4${opts.landscape?" landscape":""};margin:12mm}@media print{body{background:#fff}.paper{margin:0;border:0;box-shadow:none;max-width:none;padding:0}.r-sec{break-inside:avoid}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head>
+@page{size:A4${opts.landscape?" landscape":""};margin:14mm 12mm 16mm;
+  @bottom-right{content:"منظومة متابعة أنشطة مراكز تنمية الأسرة والطفولة";${box}}
+  @bottom-center{content:"${mark}";${box};color:${opts.code?"#0B4F4A":"#B4483A"};font-weight:600}
+  @bottom-left{content:"صفحة " counter(page) " من " counter(pages);${box}}}
+${opts.draft?`body::before{content:"مسودة غير معتمدة";position:fixed;top:42%;left:0;right:0;text-align:center;transform:rotate(-28deg);font:800 64px Cairo,sans-serif;color:rgba(180,72,58,.10);z-index:9;pointer-events:none}`:""}@media print{body{background:#fff}.paper{margin:0;border:0;box-shadow:none;max-width:none;padding:0}.r-sec{break-inside:avoid}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head>
 <body><div class="paper">${body}</div></body></html>`;
 }
 
@@ -516,13 +529,14 @@ $("#pw-form").addEventListener("submit",async e=>{
 });
 
 /* ================= TABS & BOOT ================= */
-const VIEWS=["dash","reports","media","users","plan","log"];
+const VIEWS=["dash","tasks","reports","media","users","plan","log"];
 function show(v){
   document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",t.dataset.view===v?"true":"false"));
   VIEWS.forEach(x=>$("#view-"+x).hidden=x!==v);
-  if(v==="dash")renderDash();if(v==="reports")renderReport();if(v==="media")renderMedia();if(v==="users")loadUsers();if(v==="plan")renderPlanView();
+  if(v==="dash")renderDash();if(v==="reports")renderReport();if(v==="media")renderMedia();if(v==="users")loadUsers();if(v==="plan")renderPlanView();if(v==="tasks")loadTasks();
 }
-document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>show(t.dataset.view));
+let navigated=false; // the user picked a view before loading finished → keep it
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{navigated=true;show(t.dataset.view)});
 
 async function loadActs(){
   try{
@@ -538,9 +552,17 @@ async function loadActs(){
   $("#who").textContent=me.name+(isAdmin?" · إدارة المشروع":"");
   applyMeta(await api("/api/meta"));
   fillSelects();restoreChoice();resetRows();renderSteps();initPlan();
-  if(isAdmin){document.querySelectorAll(".tab").forEach(t=>t.hidden=false);show("dash")}
+  if(isAdmin)document.querySelectorAll(".tab").forEach(t=>t.hidden=false);
+  else{const i=INST_BY[me.institution_id];$("#r-inst").innerHTML=`<option value="${i.id}">${esc(i.name)}</option>`;$("#r-inst").disabled=true}
+  registerDocBar("r-bar",{key:()=>({kind:$("#r-kind").value,period:$("#r-period").value,inst:$("#r-inst").value||null}),build:reportDoc});
+  registerDocBar("m-bar",{key:()=>({kind:"media",period:$("#m-period").value,inst:$("#m-inst").value||null,noIssue:!!$("#m-gov").value}),build:mediaDoc});
   await loadActs();
+  await Promise.all([loadReports(),pollNotifications()]);
+  if(!navigated)show(isAdmin&&!(notifState.counts.pending>0)?"dash":"tasks");
+  window.appReady=true;
   embedLogos();
+  setInterval(()=>{if(document.visibilityState==="visible")pollNotifications()},30000);
+  window.addEventListener("focus",()=>pollNotifications());
   // refresh every 2 minutes while the tab is visible (replaces the prototype's live listener)
   setInterval(()=>{if(document.visibilityState==="visible"&&!saving)loadActs()},120000);
 })();

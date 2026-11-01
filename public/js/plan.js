@@ -59,7 +59,8 @@ $("#p-month").addEventListener("change",renderPlanView);
 $("#p-inst").addEventListener("change",()=>{fillPlanCenters();renderPlanView()});
 $("#p-center").addEventListener("change",()=>{loadPlan()});
 
-function renderPlanView(){if($("#view-plan").hidden)return;renderPlanOverview();loadPlan()}
+async function renderPlanView(){if($("#view-plan").hidden)return;renderPlanOverview();loadPlan();await refreshPlanSums()}
+let planFilter="";
 
 /* ---------- overview: plan status of every center in scope ---------- */
 function renderPlanOverview(){
@@ -69,18 +70,18 @@ function renderPlanOverview(){
   if(!isAdmin&&centers.length<2){$("#p-overview").innerHTML="";return}
   const by={};planSums.filter(x=>x.month===ym).forEach(x=>by[x.center]=x);
   const n=s=>centers.filter(c=>(by[c.id]?.status||"none")===s).length;
-  const sel=$("#p-center").value;
-  $("#p-overview").innerHTML=`<div class="kpis" style="margin-bottom:12px">
-      <div class="kpi"><div class="v num">${fmt(n("approved"))}</div><div class="l">خطط معتمدة</div></div>
-      <div class="kpi"><div class="v num">${fmt(n("submitted"))}</div><div class="l">مرسلة تنتظر الاعتماد</div></div>
-      <div class="kpi"><div class="v num">${fmt(n("draft")+n("returned"))}</div><div class="l">قيد الإعداد أو معادة</div></div>
-      <div class="kpi"><div class="v num">${fmt(n("none"))}</div><div class="l">مراكز لم تبدأ خطتها</div></div></div>
+  const sel=$("#p-center").value,F={submitted:["submitted"],approved:["approved"],work:["draft","returned"],none:["none"]};
+  const shown=centers.filter(c=>!planFilter||F[planFilter].includes(by[c.id]?.status||"none"));
+  const k=(f,v,l)=>`<button type="button" class="kpi kbtn${planFilter===f?" on":""}" data-pf-filter="${f}"><div class="v num">${fmt(v)}</div><div class="l">${l}</div></button>`;
+  $("#p-overview").innerHTML=`<div class="kpis" style="margin-bottom:8px">${k("approved",n("approved"),"خطط معتمدة")}${k("submitted",n("submitted"),"مرسلة تنتظر الاعتماد")}${k("work",n("draft")+n("returned"),"قيد الإعداد أو معادة")}${k("none",n("none"),"مراكز لم تبدأ خطتها")}</div>
+    <p class="hint" style="margin:0 0 8px">${planFilter?`يعرض ${fmt(shown.length)} مركز · <button type="button" class="link" data-pf-filter="">عرض الكل</button>`:"اضغط على أي رقم لتصفية المراكز حسب حالة الخطة."}</p>
     <div class="tbl-wrap" style="margin-bottom:22px"><table><thead><tr><th>المركز</th>${isAdmin?"<th>المؤسسة</th>":""}<th>حالة الخطة</th><th>الأنشطة المخططة</th><th>المستفيدون المتوقعون</th><th>آخر تحديث</th></tr></thead><tbody>`+
-    centers.map(c=>{const x=by[c.id];return `<tr class="inst-row${c.id===sel?" open":""}" data-pcenter="${c.id}" tabindex="0"><td>${esc(c.vil)} <span class="hint">– ${esc(c.mk)}، ${esc(c.gov)}</span></td>
+    shown.map(c=>{const x=by[c.id];return `<tr class="inst-row${c.id===sel?" open":""}" data-pcenter="${c.id}" tabindex="0"><td>${esc(c.vil)} <span class="hint">– ${esc(c.mk)}، ${esc(c.gov)}</span></td>
       ${isAdmin?`<td>${esc(INST_BY[c.inst].name)}</td>`:""}<td>${planPill(x)}</td><td class="num">${x?fmt(x.items):"—"}</td><td class="num">${x?fmt(x.expected):"—"}</td>
       <td class="num">${x?shortDate(String(x.updatedAt).slice(0,10)):"—"}</td></tr>`}).join("")+`</tbody></table></div>`;
 }
-$("#p-overview").addEventListener("click",e=>{const r=e.target.closest("[data-pcenter]");if(!r)return;
+$("#p-overview").addEventListener("click",e=>{const f=e.target.closest("[data-pf-filter]");if(f){planFilter=planFilter===f.dataset.pfFilter?"":f.dataset.pfFilter;renderPlanOverview();return}
+  const r=e.target.closest("[data-pcenter]");if(!r)return;
   $("#p-center").value=r.dataset.pcenter;loadPlan().then(()=>$("#p-editor").scrollIntoView({behavior:"smooth",block:"start"}))});
 $("#p-overview").addEventListener("keydown",e=>{if(e.key==="Enter")e.target.closest("[data-pcenter]")?.click()});
 
@@ -136,7 +137,7 @@ function renderPlanEditor(){
     plan.status==="approved"&&plan.reviewedByName?`اعتمدها ${esc(plan.reviewedByName)}`:""].filter(Boolean).join(" · ");
   let h=`<div class="panel" style="margin-bottom:14px"><div class="sec-h" style="margin:0"><div>
       <h2 style="font-size:18px">خطة ${esc(c.vil)} <span class="hint">– مركز ${esc(c.mk)}، ${esc(c.gov)}</span></h2>
-      <div class="meta"><span>${esc(INST_BY[c.inst].name)}</span><span>${monthLabel(ym)}</span>${meta?`<span>${meta}</span>`:""}</div></div>${planPill(plan)}</div></div>`;
+      <div class="meta"><span>${esc(INST_BY[c.inst].name)}</span><span>${monthLabel(ym)}</span>${meta?`<span>${meta}</span>`:""}${plan.code?`<span>كود الاعتماد <bdi dir="ltr" class="code">${esc(plan.code)}</bdi></span>`:""}</div></div>${planPill(plan)}</div></div>`;
   if(plan.status==="returned"&&plan.note)h+=`<div class="notice bad"><b>ملاحظات إدارة المشروع:</b> ${esc(plan.note)}</div>`;
   if(locked)h+=`<div class="notice">${plan.status==="approved"?"الخطة معتمدة.":"الخطة مرسلة للاعتماد."} لا يمكن تعديلها إلا إذا أعادتها إدارة المشروع للتعديل.</div>`;
   h+=`<div class="rules"><span class="rule">خطة مستقلة لكل مركز</span><span class="rule">${fmt(MIN_PER_MONTH)} أنشطة على الأقل</span><span class="rule">التوقيت من ${fmtTime(DAY_START)} حتى ${fmtTime(DAY_END)}</span><span class="rule">لا أنشطة يومي ${weekendNames()}</span><span class="rule">توزيع منتظم على أسابيع الشهر</span><span class="rule">دون تعارض مع أنشطة الحضانة ورياض الأطفال</span><span class="rule">إدراج المناسبات الرسمية والأيام العالمية</span></div>`;
@@ -150,11 +151,14 @@ function renderPlanEditor(){
   h+=`</div><aside class="panel psum" id="p-sum"></aside></div>
     <datalist id="p-targets">${TARGETS.map(t=>`<option value="${esc(t)}">`).join("")}</datalist>
     <div class="savebar"><div class="savemsg" id="p-msg"></div>
-      ${sortedItems().length?'<button class="btn ghost" type="button" id="p-dl">تنزيل الخطة</button>':""}
+      ${sortedItems().length?dlButtons('data-pdl="1"'):""}
       ${locked?"":`<button class="btn ghost" type="button" id="p-save">حفظ كمسودة</button><button class="btn" type="button" id="p-submit">${isAdmin&&plan.status==="approved"?"حفظ التعديلات":"إرسال للاعتماد"}</button>`}
       ${isAdmin&&plan.status==="submitted"?'<button class="btn orange" type="button" id="p-approve">اعتماد الخطة</button>':""}
       ${isAdmin&&(plan.status==="submitted"||plan.status==="approved")?'<button class="btn ghost" type="button" id="p-return">إعادة للتعديل</button>':""}
-    </div>`;
+    </div>
+    <div class="ret-box panel" id="p-retbox" hidden><label for="p-retnote">سبب الإعادة أو التعديلات المطلوبة من المركز</label><textarea id="p-retnote" maxlength="600"></textarea>
+      <div class="card-a"><button type="button" class="btn orange" id="p-return-ok">تأكيد الإعادة للتعديل</button><button type="button" class="btn ghost" id="p-return-x">إلغاء</button></div></div>
+    ${plan.id?`<details class="panel" data-tl="plan:${plan.id}" style="margin-top:14px"><summary>السجل الزمني للخطة</summary><div class="tl-box"></div></details>`:""}`;
   $("#p-editor").innerHTML=h;
   renderPlanSummary();
 }
@@ -222,7 +226,7 @@ async function savePlan(submit){
     plan=(await api(`/api/plans/${encodeURIComponent(plan.center)}/${planMonthVal()}`,{method:"PUT",body:{items,submit:submit&&!keepStatus}})).plan;
     pitems=plan.items.map(i=>newItem({...i,expected:String(i.expected)}));
     toast(submit&&!keepStatus?"تم إرسال الخطة للاعتماد":"تم حفظ الخطة");
-    await refreshPlanSums();renderPlanEditor();
+    await refreshPlanSums();renderPlanEditor();pollNotifications();
   }catch(x){
     if(x.data&&x.data.errors){Object.entries(x.data.errors).forEach(([i,m])=>{if(list[i])list[i].err=m});renderPlanEditor()}
     const m=$("#p-msg");m.textContent="لم يتم الحفظ: "+(x.status&&x.status<500?x.message:"تحقق من الاتصال وحاول مرة أخرى.");m.classList.add("bad");
@@ -231,11 +235,11 @@ async function savePlan(submit){
 async function refreshPlanSums(){try{planSums=(await api("/api/plans")).plans}catch(e){}renderPlanOverview();renderDash()}
 
 async function reviewPlan(action){
-  let note="";
-  if(action==="return"){note=prompt("اكتب سبب الإعادة أو التعديلات المطلوبة من المركز:")||"";if(!note.trim())return}
+  const note=action==="return"?$("#p-retnote").value.trim():"";
+  if(action==="return"&&note.length<3){toast("اكتب سبب الإعادة أو التعديلات المطلوبة");return}
   try{plan=(await api(`/api/plans/${plan.id}/review`,{method:"POST",body:{action,note}})).plan;
     pitems=plan.items.map(i=>newItem({...i,expected:String(i.expected)}));
-    toast(action==="approve"?"تم اعتماد الخطة":"تمت إعادة الخطة للتعديل");await refreshPlanSums();renderPlanEditor()}
+    toast(action==="approve"?`تم اعتماد الخطة · كود ${plan.code}`:"أُعيدت الخطة للتعديل وتم إشعار المؤسسة");await refreshPlanSums();renderPlanEditor();pollNotifications()}
   catch(x){toast(x.message)}
 }
 
@@ -256,12 +260,14 @@ $("#p-editor").addEventListener("click",e=>{
   if(e.target.id==="p-save")savePlan(false);
   if(e.target.id==="p-submit")savePlan(true);
   if(e.target.id==="p-approve")reviewPlan("approve");
-  if(e.target.id==="p-return")reviewPlan("return");
-  if(e.target.id==="p-dl")downloadPlan();
+  if(e.target.id==="p-return"){$("#p-retbox").hidden=false;$("#p-retnote").focus()}
+  if(e.target.id==="p-return-x")$("#p-retbox").hidden=true;
+  if(e.target.id==="p-return-ok")reviewPlan("return");
+  const dl=e.target.closest("[data-pdl]");if(dl)exportDoc(dl.dataset.fmt,planDoc(),dl);
 });
 
 /* ---------- printable plan (A4 landscape) ---------- */
-function downloadPlan(){
+function planDoc(){
   const c=CENTERS[plan.center],ym=planMonthVal(),list=sortedItems();
   const byAxis=AXES.map(a=>[a.name,list.filter(r=>r.type===a.name)]).filter(x=>x[1].length);
   const body=coverBand()+`<div class="r-cover"><div class="r-eyebrow">الخطة الشهرية للأنشطة والفعاليات</div>
@@ -274,5 +280,7 @@ function downloadPlan(){
     byAxis.map(([a,l])=>`<tr><td>${esc(a)}</td><td>${fmt(l.length)}</td><td>${fmt(l.reduce((s,r)=>s+(+r.expected||0),0))}</td></tr>`).join("")+`</tbody></table></div></div>
     <div class="r-sec r-sign"><div><b>مدير المركز</b><span>الاسم:</span><span>التوقيع:</span></div><div><b>ممثل المؤسسة المشغلة</b><span>الاسم:</span><span>التوقيع:</span></div><div><b>اعتماد إدارة المشروع</b><span>الاسم:</span><span>التوقيع:</span></div></div>
     <div class="r-note">أُعدت الخطة وفق محاور ومحددات محضر اجتماع ٧ أكتوبر ٢٠٢٦: تغطية الفترة التشغيلية من ٧:٣٠ صباحًا حتى ٥:٠٠ مساءً من الأحد إلى الخميس، والتوزيع المنتظم على مدار الشهر، دون التعارض مع أنشطة الحضانة ورياض الأطفال، مع إدراج المناسبات الرسمية والأيام العالمية والمحلية والتنسيق لدعوة الشركاء الحكوميين المعنيين.</div>`;
-  saveFile(`خطة-${ym}-${c.vil}.html`,standalone(`الخطة الشهرية ${monthLabel(ym)} – ${c.vil}`,body,{landscape:true}));
+  const ok=plan.status==="approved"&&plan.approval;
+  return{title:`الخطة الشهرية ${monthLabel(ym)} – ${c.vil}`,body,landscape:true,filename:`خطة-${ym}-${c.vil}`,
+    approval:ok?{...plan.approval,approver:plan.reviewedByName,at:plan.reviewedAt}:null};
 }

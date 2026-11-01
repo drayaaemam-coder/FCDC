@@ -44,7 +44,9 @@ before(async () => {
 });
 after(async () => {
   await pool.query("DELETE FROM activities WHERE title LIKE $1", [`%${stamp}%`]);
-  await pool.query("DELETE FROM monthly_plans WHERE plan_month=$1", [planMonth]);
+  await pool.query("DELETE FROM monthly_plans WHERE plan_month = ANY($1)", [[planMonth, "2025-03"]]);
+  await pool.query("DELETE FROM reports WHERE title LIKE $1", [`%${stamp}%`]);
+  await pool.query("DELETE FROM notifications WHERE title LIKE $1 OR body LIKE $1", [`%${stamp}%`]);
   await pool.query("DELETE FROM users WHERE email LIKE $1", [`%${stamp}%`]);
   server.close(); await pool.end();
 });
