@@ -18,7 +18,7 @@ router.get("/", ah(async (_req, res) => {
     occasions: OCCASIONS.map(([month, day, name]) => ({ month, day, name })),
     movableOccasions: MOVABLE_OCCASIONS,
     rules: { minPerBatch: config.minPerBatch, minPerMonth: config.minPerMonth, maxPhotos: config.maxPhotos, startMonth: config.startMonth,
-      dayStart: config.dayStart, dayEnd: config.dayEnd, planMonthsAhead: config.planMonthsAhead },
+      dayStart: config.dayStart, dayEnd: config.dayEnd, weekendDays: config.weekendDays, planMonthsAhead: config.planMonthsAhead },
     today: todayCairo(),
   });
 }));

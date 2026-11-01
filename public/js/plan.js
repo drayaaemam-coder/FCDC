@@ -10,6 +10,16 @@ const DAYS=["الأحد","الاثنين","الثلاثاء","الأربعاء",
 const arDigits=s=>String(s).replace(/\d/g,d=>"٠١٢٣٤٥٦٧٨٩"[d]);
 const fmtTime=t=>{if(!t)return"";const h=+t.slice(0,2),m=t.slice(3,5);return arDigits(`${h%12||12}:${m}`)+(h<12?" ص":" م")};
 const dayName=d=>DAYS[new Date(d+"T00:00").getDay()];
+const isWeekend=d=>WEEKEND.includes(new Date(d+"T00:00").getDay());
+const weekendNames=()=>WEEKEND.map(i=>DAYS[i]).join(" و");
+// أقرب يوم عمل داخل نفس الشهر (عند تساوي المسافة يُفضَّل اليوم السابق)
+function nearestWorkday(d){
+  const ym=d.slice(0,7),t=new Date(d+"T00:00");
+  for(let k=1;k<7;k++){const b=new Date(t);b.setDate(t.getDate()-k);if(ymd(b).startsWith(ym)&&!WEEKEND.includes(b.getDay()))return ymd(b);
+    const a=new Date(t);a.setDate(t.getDate()+k);if(ymd(a).startsWith(ym)&&!WEEKEND.includes(a.getDay()))return ymd(a)}
+  return d;
+}
+const occInPlan=o=>pitems.some(r=>r.date.startsWith(o.date.slice(0,7))&&norm(r.title).includes(norm(o.name)));
 const lastDay=ym=>new Date(+ym.slice(0,4),+ym.slice(5),0).getDate();
 const addMonth=(ym,n)=>{const d=new Date(+ym.slice(0,4),+ym.slice(5)-1+n,1);return ymd(d).slice(0,7)};
 
@@ -129,10 +139,10 @@ function renderPlanEditor(){
       <div class="meta"><span>${esc(INST_BY[c.inst].name)}</span><span>${monthLabel(ym)}</span>${meta?`<span>${meta}</span>`:""}</div></div>${planPill(plan)}</div></div>`;
   if(plan.status==="returned"&&plan.note)h+=`<div class="notice bad"><b>ملاحظات إدارة المشروع:</b> ${esc(plan.note)}</div>`;
   if(locked)h+=`<div class="notice">${plan.status==="approved"?"الخطة معتمدة.":"الخطة مرسلة للاعتماد."} لا يمكن تعديلها إلا إذا أعادتها إدارة المشروع للتعديل.</div>`;
-  h+=`<div class="rules"><span class="rule">خطة مستقلة لكل مركز</span><span class="rule">${fmt(MIN_PER_MONTH)} أنشطة على الأقل</span><span class="rule">التوقيت من ${fmtTime(DAY_START)} حتى ${fmtTime(DAY_END)}</span><span class="rule">توزيع منتظم على أسابيع الشهر</span><span class="rule">دون تعارض مع أنشطة الحضانة ورياض الأطفال</span><span class="rule">إدراج المناسبات الرسمية والأيام العالمية</span></div>`;
+  h+=`<div class="rules"><span class="rule">خطة مستقلة لكل مركز</span><span class="rule">${fmt(MIN_PER_MONTH)} أنشطة على الأقل</span><span class="rule">التوقيت من ${fmtTime(DAY_START)} حتى ${fmtTime(DAY_END)}</span><span class="rule">لا أنشطة يومي ${weekendNames()}</span><span class="rule">توزيع منتظم على أسابيع الشهر</span><span class="rule">دون تعارض مع أنشطة الحضانة ورياض الأطفال</span><span class="rule">إدراج المناسبات الرسمية والأيام العالمية</span></div>`;
   if(occ.length)h+=`<div class="panel occ" style="margin-bottom:14px"><h3>مناسبات ${MONTHS[+ym.slice(5)-1]}</h3><p class="hint">يُراعى التنسيق لدعوة الشركاء الحكوميين المعنيين. المناسبات الهجرية (رمضان والأعياد والمولد النبوي) تُضاف يدويًا.</p><div class="occ-list">`+
-    occ.map(o=>{const inPlan=pitems.some(r=>r.date===o.date&&norm(r.title).includes(norm(o.name)));
-      return `<div class="occ-i"><span class="num">${dayName(o.date)} ${shortDate(o.date)}</span><b>${esc(o.name)}</b>${inPlan?'<span class="pill ok">مدرجة</span>':locked?"":`<button type="button" class="link" data-pocc="${o.date}|${esc(o.name)}">+ إضافة للخطة</button>`}</div>`}).join("")+`</div></div>`;
+    occ.map(o=>{const inPlan=occInPlan(o),wk=isWeekend(o.date);
+      return `<div class="occ-i"><span class="num">${dayName(o.date)} ${shortDate(o.date)}${wk?` · عطلة، تُدرج يوم ${dayName(nearestWorkday(o.date))} ${shortDate(nearestWorkday(o.date))}`:""}</span><b>${esc(o.name)}</b>${inPlan?'<span class="pill ok">مدرجة</span>':locked?"":`<button type="button" class="link" data-pocc="${o.date}|${esc(o.name)}">+ إضافة للخطة</button>`}</div>`}).join("")+`</div></div>`;
   h+=`<div class="pwrap"><div style="min-width:0">`;
   if(locked)h+=readOnlyTable(sortedItems());
   else h+=`<div class="acts" id="p-items">${pitems.map((r,i)=>planItemHTML(r,i)).join("")||'<div class="empty">لا توجد أنشطة في الخطة بعد.</div>'}</div>
@@ -162,7 +172,7 @@ function renderPlanSummary(){
   const byDate={};list.forEach(r=>{if(r.date&&r.start&&r.end)(byDate[r.date]=byDate[r.date]||[]).push(r)});
   Object.entries(byDate).forEach(([d,l])=>{for(let i=0;i<l.length;i++)for(let j=i+1;j<l.length;j++)if(l[i].start<l[j].end&&l[j].start<l[i].end)
     warn.push(`تداخل في التوقيت يوم ${shortDate(d)}: «${esc(l[i].title||"بدون اسم")}» و«${esc(l[j].title||"بدون اسم")}».`)});
-  const missOcc=occasionsFor(ym).filter(o=>!list.some(r=>r.date===o.date&&norm(r.title).includes(norm(o.name))));
+  const missOcc=occasionsFor(ym).filter(o=>!occInPlan(o));
   if(missOcc.length)warn.push(`${fmt(missOcc.length)} مناسبة في هذا الشهر غير مدرجة في الخطة.`);
   if(list.length&&list.length<MIN_PER_MONTH)warn.push(`الخطة تحتاج ${fmt(MIN_PER_MONTH)} أنشطة على الأقل قبل إرسالها.`);
   const mx=Math.max(1,...weeks.map(w=>w[2]));
@@ -187,6 +197,7 @@ function planCheck(){
     else if(r.target.trim().length<2)r.err="حدد الفئة المستهدفة.";
     else if(r.expected!==""&&!(Number.isInteger(+r.expected)&&+r.expected>=0))r.err="العدد المتوقع يجب أن يكون رقمًا صحيحًا موجبًا.";
     else if(!r.date||!r.date.startsWith(ym))r.err="اختر تاريخ التنفيذ داخل شهر الخطة.";
+    else if(isWeekend(r.date))r.err=`يوم ${dayName(r.date)} عطلة أسبوعية. اختر يومًا من الأحد إلى الخميس.`;
     else if(!r.start||!r.end)r.err="حدد توقيت البداية والنهاية.";
     else if(r.start<DAY_START||r.end>DAY_END)r.err=`التوقيت يجب أن يكون داخل الفترة التشغيلية من ${fmtTime(DAY_START)} حتى ${fmtTime(DAY_END)}.`;
     else if(r.start>=r.end)r.err="توقيت النهاية يجب أن يكون بعد توقيت البداية.";
@@ -231,14 +242,16 @@ async function reviewPlan(action){
 /* ---------- events ---------- */
 $("#p-editor").addEventListener("input",e=>{const t=e.target;if(!t.dataset.pf)return;const r=pitems.find(x=>x.k==t.dataset.pk);if(!r)return;
   r[t.dataset.pf]=t.value;if(r.err){r.err="";const er=document.querySelector(`[data-perr="${r.k}"]`);if(er)er.textContent="";er?.closest(".act")?.classList.remove("has-err")}
-  if(t.dataset.pf==="date"){const st=t.closest(".act").querySelector(".act-st");if(st)st.textContent=t.value?dayName(t.value)+" "+longDate(t.value):""}
+  if(t.dataset.pf==="date"){const st=t.closest(".act").querySelector(".act-st");if(st)st.textContent=t.value?dayName(t.value)+" "+longDate(t.value):"";
+    if(t.value&&isWeekend(t.value)){r.err=`يوم ${dayName(t.value)} عطلة أسبوعية. اختر يومًا من الأحد إلى الخميس.`;const er=document.querySelector(`[data-perr="${r.k}"]`);if(er){er.textContent=r.err;er.closest(".act").classList.add("has-err")}}}
   renderPlanSummary()});
 $("#p-editor").addEventListener("change",e=>{const t=e.target;if(t.dataset.pf==="type"){const r=pitems.find(x=>x.k==t.dataset.pk);r.type=t.value;renderPlanEditor();document.getElementById(`p${r.k}-target`)?.focus()}});
 $("#p-editor").addEventListener("click",e=>{
   const rm=e.target.closest("[data-prm]");if(rm){pitems=pitems.filter(r=>r.k!=rm.dataset.prm);renderPlanEditor();return}
-  const oc=e.target.closest("[data-pocc]");if(oc){const[date,name]=oc.dataset.pocc.split("|");
+  const oc=e.target.closest("[data-pocc]");if(oc){const[orig,name]=oc.dataset.pocc.split("|"),date=isWeekend(orig)?nearestWorkday(orig):orig;
     const blank=pitems.find(itemEmpty),x={title:"احتفالية "+name,type:"الأنشطة الترفيهية والمناسبات",target:"المجتمع المحلي",date,start:"10:00",end:"12:00"};
-    if(blank)Object.assign(blank,x);else pitems.push(newItem(x));renderPlanEditor();toast("أُضيفت المناسبة. أكمل الفئة والعدد والمسؤول.");return}
+    if(blank)Object.assign(blank,x);else pitems.push(newItem(x));renderPlanEditor();
+    toast(date!==orig?`أُضيفت يوم ${dayName(date)} ${shortDate(date)} لأن موعدها عطلة. أكمل الفئة والعدد والمسؤول.`:"أُضيفت المناسبة. أكمل الفئة والعدد والمسؤول.");return}
   if(e.target.id==="p-add"){pitems.push(newItem());renderPlanEditor();setTimeout(()=>document.getElementById(`p${pitems.at(-1).k}-title`)?.focus(),30);return}
   if(e.target.id==="p-save")savePlan(false);
   if(e.target.id==="p-submit")savePlan(true);
@@ -260,6 +273,6 @@ function downloadPlan(){
     <div class="r-sec"><h2><span>٢</span>التوزيع على المحاور</h2><div class="r-tw"><table class="r-t"><thead><tr><th>المحور</th><th>عدد الأنشطة</th><th>المستفيدون المتوقعون</th></tr></thead><tbody>`+
     byAxis.map(([a,l])=>`<tr><td>${esc(a)}</td><td>${fmt(l.length)}</td><td>${fmt(l.reduce((s,r)=>s+(+r.expected||0),0))}</td></tr>`).join("")+`</tbody></table></div></div>
     <div class="r-sec r-sign"><div><b>مدير المركز</b><span>الاسم:</span><span>التوقيع:</span></div><div><b>ممثل المؤسسة المشغلة</b><span>الاسم:</span><span>التوقيع:</span></div><div><b>اعتماد إدارة المشروع</b><span>الاسم:</span><span>التوقيع:</span></div></div>
-    <div class="r-note">أُعدت الخطة وفق محاور ومحددات محضر اجتماع ٧ أكتوبر ٢٠٢٦: تغطية الفترة التشغيلية من ٧:٣٠ صباحًا حتى ٥:٠٠ مساءً، والتوزيع المنتظم على مدار الشهر، دون التعارض مع أنشطة الحضانة ورياض الأطفال، مع إدراج المناسبات الرسمية والأيام العالمية والمحلية والتنسيق لدعوة الشركاء الحكوميين المعنيين.</div>`;
+    <div class="r-note">أُعدت الخطة وفق محاور ومحددات محضر اجتماع ٧ أكتوبر ٢٠٢٦: تغطية الفترة التشغيلية من ٧:٣٠ صباحًا حتى ٥:٠٠ مساءً من الأحد إلى الخميس، والتوزيع المنتظم على مدار الشهر، دون التعارض مع أنشطة الحضانة ورياض الأطفال، مع إدراج المناسبات الرسمية والأيام العالمية والمحلية والتنسيق لدعوة الشركاء الحكوميين المعنيين.</div>`;
   saveFile(`خطة-${ym}-${c.vil}.html`,standalone(`الخطة الشهرية ${monthLabel(ym)} – ${c.vil}`,body,{landscape:true}));
 }

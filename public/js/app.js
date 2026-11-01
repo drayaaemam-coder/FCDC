@@ -1,6 +1,6 @@
 /* Reference data is loaded from /api/meta (see applyMeta) */
 let INST=[],CENTERS={},INST_BY={},GOVS=[],TYPES=[],AXES=[],OCCASIONS=[],MOVABLE_OCCASIONS=[];
-let DAY_START="07:30",DAY_END="17:00",PLAN_AHEAD=3,planSums=[];
+let DAY_START="07:30",DAY_END="17:00",PLAN_AHEAD=3,WEEKEND=[5,6],planSums=[];
 let MIN_PER_MONTH=3,MAX_PHOTOS=4,MIN_PER_BATCH=3,START="2024-09";
 function applyMeta(m){
   INST=m.institutions.map(i=>({id:i.id,name:i.name,c:i.centers}));
@@ -8,7 +8,7 @@ function applyMeta(m){
   INST_BY=Object.fromEntries(INST.map(i=>[i.id,i]));
   GOVS=[...new Set(Object.values(CENTERS).map(c=>c.gov))];
   TYPES=m.types;AXES=m.axes;OCCASIONS=m.occasions;MOVABLE_OCCASIONS=m.movableOccasions||[];
-  ({dayStart:DAY_START,dayEnd:DAY_END,planMonthsAhead:PLAN_AHEAD}=m.rules);
+  ({dayStart:DAY_START,dayEnd:DAY_END,planMonthsAhead:PLAN_AHEAD,weekendDays:WEEKEND=[5,6]}=m.rules);
   ({minPerMonth:MIN_PER_MONTH,maxPhotos:MAX_PHOTOS,minPerBatch:MIN_PER_BATCH,startMonth:START}=m.rules);
 }
 const MONTHS=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];

@@ -119,8 +119,10 @@ test("monthly plan: validation, submit, lock, review", async () => {
   // time outside 07:30–17:00, date outside month, missing responsible
   const bad = await inst("PUT", `/api/plans/hk-01/${planMonth}`, { items: [
     item(`نشاط مبكر ${stamp}`, { start: "07:00" }), item(`نشاط متأخر ${stamp}`, { end: "17:30" }),
-    item(`شهر آخر ${stamp}`, { date: "2025-03-01" }), item(`بلا مسؤول ${stamp}`, { responsible: "" })] });
-  assert.equal(bad.status, 422); assert.deepEqual(Object.keys(bad.body.errors), ["0", "1", "2", "3"]);
+    item(`شهر آخر ${stamp}`, { date: "2025-03-01" }), item(`بلا مسؤول ${stamp}`, { responsible: "" }),
+    item(`يوم جمعة ${stamp}`, { date: planMonth + "-14" }), item(`يوم سبت ${stamp}`, { date: planMonth + "-15" })] });
+  assert.equal(bad.status, 422); assert.deepEqual(Object.keys(bad.body.errors), ["0", "1", "2", "3", "4", "5"]);
+  assert.match(bad.body.errors["4"], /الجمعة/); assert.match(bad.body.errors["5"], /السبت/);
   // draft save, then submit needs >= 3 items
   const d = await inst("PUT", `/api/plans/hk-01/${planMonth}`, { items: [item(`ندوة ${stamp}`)] });
   assert.equal(d.status, 200); assert.equal(d.body.plan.status, "draft");

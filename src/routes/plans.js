@@ -9,6 +9,8 @@ const isMonth = s => /^\d{4}-(0[1-9]|1[0-2])$/.test(String(s || ""));
 const isTime = s => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(s || ""));
 const addMonths = (ym, n) => { const d = new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5) - 1 + n, 1)); return d.toISOString().slice(0, 7); };
 const maxPlanMonth = () => addMonths(todayCairo().slice(0, 7), config.planMonthsAhead);
+const DAY_NAMES = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+const weekday = d => new Date(d + "T00:00:00Z").getUTCDay();
 const toInt = v => { const n = Number(v); return Number.isInteger(n) && n >= 0 && n <= 100000 ? n : NaN; };
 
 const PLAN_COLS = `p.id, p.center_id AS center, p.institution_id AS inst, p.plan_month AS month, p.status,
@@ -72,6 +74,8 @@ function validateItems(items, month, types) {
     if (r.target.length < 2 || r.target.length > 100) return errs[i] = "حدد الفئة المستهدفة.";
     if (Number.isNaN(r.expected)) return errs[i] = "العدد المتوقع يجب أن يكون رقمًا صحيحًا موجبًا.";
     if (!isDate(r.date) || !r.date.startsWith(month)) return errs[i] = "تاريخ التنفيذ يجب أن يكون داخل شهر الخطة.";
+    if (config.weekendDays.includes(weekday(r.date)))
+      return errs[i] = `يوم ${DAY_NAMES[weekday(r.date)]} عطلة أسبوعية. اختر يومًا من الأحد إلى الخميس.`;
     if (!isTime(r.start) || !isTime(r.end)) return errs[i] = "حدد توقيت البداية والنهاية.";
     if (r.start < config.dayStart || r.end > config.dayEnd)
       return errs[i] = `التوقيت يجب أن يكون داخل الفترة التشغيلية من ${config.dayStart} حتى ${config.dayEnd}.`;
