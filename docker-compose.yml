@@ -1,0 +1,28 @@
+# تشغيل كامل بأمر واحد:  docker compose up -d   ثم افتح http://localhost:3000
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fcdc
+      POSTGRES_PASSWORD: fcdc
+      POSTGRES_DB: fcdc
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fcdc"]
+      interval: 5s
+      retries: 10
+  app:
+    build: .
+    ports: ["3000:3000"]
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgres://fcdc:fcdc@db:5432/fcdc
+      JWT_SECRET: ${JWT_SECRET:-please-change-this-to-a-long-random-string}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me-now}
+      UPLOAD_DIR: /app/uploads
+    volumes: [uploads:/app/uploads]
+volumes:
+  pgdata:
+  uploads:

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>تسجيل الدخول · متابعة أنشطة المراكز</title>
+<link rel="icon" href="/img/logo5.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="band"><div class="wrap logos">
+  <img src="/img/logo1.png" alt="وزارة التضامن الاجتماعي">
+  <img src="/img/logo2.png" alt="وزارة التربية والتعليم والتعليم الفني">
+  <img src="/img/logo3.png" alt="وزارة التنمية المحلية والبيئة">
+  <img src="/img/logo4.png" alt="التحالف الوطني للعمل الأهلي التنموي">
+  <img src="/img/logo5.png" class="wide" alt="مراكز تنمية الأسرة والطفولة">
+</div></div>
+<header style="position:static"><div class="wrap"><div class="hd" style="padding-block:14px">
+  <div class="brand"><small>التحالف الوطني للعمل الأهلي التنموي · شراكة من أجل الإنسانية</small><h1>متابعة أنشطة مراكز تنمية الأسرة والطفولة</h1></div>
+</div></div></header>
+<main class="wrap">
+  <form class="login" id="f" novalidate>
+    <h2>تسجيل الدخول</h2>
+    <div><label for="email">البريد الإلكتروني</label><input type="email" id="email" dir="ltr" autocomplete="username" required></div>
+    <div><label for="password">كلمة المرور</label><input type="password" id="password" autocomplete="current-password" required></div>
+    <div class="act-err" id="err" role="alert"></div>
+    <button class="btn" type="submit" id="go">دخول</button>
+    <p class="hint" style="margin:0">ليس لديك حساب؟ اطلب من إدارة المشروع إنشاء حساب لمؤسستك.</p>
+  </form>
+</main>
+<script>
+document.getElementById("f").addEventListener("submit", async e => {
+  e.preventDefault();
+  const err = document.getElementById("err"), go = document.getElementById("go");
+  err.textContent = ""; go.disabled = true;
+  try {
+    const r = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json", "X-Requested-With": "fetch" },
+      body: JSON.stringify({ email: document.getElementById("email").value, password: document.getElementById("password").value }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || "تعذر تسجيل الدخول");
+    location.href = "/";
+  } catch (x) { err.textContent = x.message; go.disabled = false; }
+});
+</script>
+</body>
+</html>

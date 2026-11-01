@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>متابعة أنشطة المراكز</title>
+<link rel="icon" href="/img/logo5.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="band"><div class="wrap logos" id="logos">
+  <img src="/img/logo1.png" alt="وزارة التضامن الاجتماعي">
+  <img src="/img/logo2.png" alt="وزارة التربية والتعليم والتعليم الفني">
+  <img src="/img/logo3.png" alt="وزارة التنمية المحلية والبيئة">
+  <img src="/img/logo4.png" alt="التحالف الوطني للعمل الأهلي التنموي">
+  <img src="/img/logo5.png" class="wide" alt="مراكز تنمية الأسرة والطفولة">
+</div></div>
+</div></div>
+<header>
+  <div class="wrap">
+    <div class="hd">
+      <div class="brand">
+        <small>التحالف الوطني للعمل الأهلي التنموي · شراكة من أجل الإنسانية</small>
+        <h1>متابعة أنشطة مراكز تنمية الأسرة والطفولة</h1>
+      </div>
+      <div class="who"><span id="who"></span> · <button class="link light" id="pw-btn" type="button">كلمة المرور</button> · <button class="link light" id="logout" type="button">خروج</button></div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" data-view="dash" hidden>لوحة المتابعة</button>
+      <button class="tab" role="tab" data-view="reports" hidden>التقارير</button>
+      <button class="tab" role="tab" data-view="media" hidden>التوثيق الإعلامي</button>
+      <button class="tab" role="tab" data-view="users" hidden>الحسابات</button>
+      <button class="tab" role="tab" data-view="log" aria-selected="true">تسجيل الأنشطة</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="conn" class="notice" hidden></div>
+
+  <!-- ============ REGISTER ============ -->
+  <section id="view-log">
+    <div class="step" id="s1"><div class="dot">١</div><div><h2>المؤسسة</h2><div id="s1-body"></div></div></div>
+    <div class="step" id="s2" hidden><div class="dot">٢</div><div><h2>المركز</h2><div id="s2-body"></div></div></div>
+    <div class="step" id="s3" hidden><div class="dot">٣</div><div style="min-width:0">
+      <h2>الأنشطة</h2>
+      <div class="rules"><span class="rule">٣ أنشطة على الأقل في كل تسجيل</span><span class="rule">لا يُقبل نشاط مكرر</span><span class="rule">أرفق صور التوثيق (حتى ٤ صور لكل نشاط)</span></div>
+      <form id="f" novalidate>
+        <div class="acts" id="acts"></div>
+        <div style="margin-top:12px"><button type="button" class="btn ghost" id="add-act">+ إضافة نشاط آخر</button></div>
+        <div class="savebar">
+          <div class="meter" id="meter" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="savemsg" id="savemsg"></div>
+          <button class="btn" id="save" type="submit" disabled>حفظ الأنشطة</button>
+        </div>
+      </form>
+    </div></div>
+
+    <div class="sec" id="mine-sec" hidden>
+      <div class="sec-h"><h2 id="mine-h">آخر الأنشطة المسجلة</h2><span class="hint" id="mine-n"></span></div>
+      <div class="feed" id="mine"></div>
+    </div>
+  </section>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section id="view-dash" hidden>
+    <div class="filters">
+      <div><label for="d-period">الفترة</label><select id="d-period">
+        <option value="this">الشهر الحالي</option><option value="last">الشهر السابق</option>
+        <option value="30">آخر 30 يومًا</option><option value="90">آخر 3 أشهر</option><option value="all">منذ البداية</option></select></div>
+      <div><label for="d-inst">المؤسسة</label><select id="d-inst" class="sel-inst"></select></div>
+      <div><label for="d-gov">المحافظة</label><select id="d-gov" class="sel-gov"></select></div>
+      <div><label for="d-type">نوع النشاط</label><select id="d-type"></select></div>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <p class="foot">أعداد الحضور تُجمع من كل نشاط، فقد يتكرر الشخص نفسه في أكثر من نشاط. هي مشاركات وليست مستفيدين فريدين. الحد الأدنى المطلوب ٣ أنشطة لكل مركز شهريًا.</p>
+    <div class="sec">
+      <div class="sec-h"><h2>حسب المؤسسة</h2><span class="hint">اضغط على المؤسسة لعرض مراكزها</span></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>المؤسسة</th><th>المراكز</th><th>مراكز سجّلت</th><th>الأنشطة</th><th>الحضور</th><th>آخر تسجيل</th></tr></thead>
+        <tbody id="inst-tb"></tbody>
+      </table></div>
+    </div>
+    <div class="sec grid2">
+      <div class="panel"><h3>الأنشطة حسب النوع</h3><div id="by-type"></div></div>
+      <div class="panel"><h3>الأنشطة أسبوعيًا (آخر 12 أسبوعًا)</h3><div id="by-week"></div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-h"><h2>سجل الأنشطة</h2>
+        <div style="display:flex;gap:10px;align-items:center"><span class="hint" id="feed-n" style="margin:0"></span><button class="btn ghost" id="csv">تنزيل Excel (CSV)</button></div></div>
+      <div class="feed" id="feed"></div>
+      <div style="display:flex;justify-content:center;margin-top:12px"><button class="btn ghost" id="more" hidden>عرض المزيد</button></div>
+    </div>
+  </section>
+
+  <!-- ============ REPORTS ============ -->
+  <section id="view-reports" hidden>
+    <div class="filters">
+      <div><label for="r-kind">نوع التقرير</label><select id="r-kind"><option value="m">شهري</option><option value="q">ربع سنوي</option><option value="y">سنوي</option></select></div>
+      <div><label for="r-period">الفترة</label><select id="r-period"></select></div>
+      <div><label for="r-inst">النطاق</label><select id="r-inst" class="sel-inst"></select></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn orange" id="r-dl" style="width:100%">تنزيل التقرير</button></div>
+    </div>
+    <p class="foot" style="margin:-8px 0 14px">التقرير يُبنى تلقائيًا من الأنشطة المسجلة. الملف المنزّل يفتح في أي متصفح ويمكن طباعته أو حفظه PDF من هناك.</p>
+    <div class="paper-wrap"><div class="paper" id="report"></div></div>
+  </section>
+
+  <!-- ============ USERS (admin) ============ -->
+  <section id="view-users" hidden>
+    <div class="grid2">
+      <div class="panel">
+        <h3 id="u-form-h">إضافة حساب</h3>
+        <form id="u-form" class="uform" novalidate>
+          <input type="hidden" id="u-id">
+          <div><label for="u-name">الاسم</label><input type="text" id="u-name" maxlength="150" required></div>
+          <div><label for="u-email">البريد الإلكتروني</label><input type="text" id="u-email" dir="ltr" maxlength="200" required autocomplete="off"></div>
+          <div><label for="u-role">الصلاحية</label><select id="u-role"><option value="institution">مؤسسة مشغلة (تسجيل الأنشطة)</option><option value="admin">إدارة المشروع (كل الصلاحيات)</option></select></div>
+          <div id="u-inst-wrap"><label for="u-inst">المؤسسة</label><select id="u-inst"></select></div>
+          <div><label for="u-pass">كلمة المرور <span class="opt" id="u-pass-hint">(٨ أحرف على الأقل)</span></label><input type="text" id="u-pass" dir="ltr" autocomplete="new-password"></div>
+          <div class="act-err" id="u-err"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="submit" id="u-save">إضافة الحساب</button><button class="btn ghost" type="button" id="u-cancel" hidden>إلغاء التعديل</button></div>
+        </form>
+      </div>
+      <div class="panel">
+        <h3>الحسابات</h3>
+        <p class="hint">كل مؤسسة تحتاج حسابًا واحدًا على الأقل لتسجيل أنشطة مراكزها. حساب المؤسسة يرى أنشطة مؤسسته فقط.</p>
+        <div class="feed" id="u-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MEDIA ============ -->
+  <section id="view-media" hidden>
+    <div class="filters">
+      <div><label for="m-period">الشهر</label><select id="m-period"></select></div>
+      <div><label for="m-inst">المؤسسة</label><select id="m-inst" class="sel-inst"></select></div>
+      <div><label for="m-gov">المحافظة</label><select id="m-gov" class="sel-gov"></select></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn orange" id="m-dl" style="width:100%">تنزيل ملف التوثيق الإعلامي</button></div>
+    </div>
+    <div class="kpis" id="m-kpis"></div>
+    <div class="sec">
+      <div class="sec-h"><h2>صور وروابط الأنشطة</h2><span class="hint" id="m-n"></span></div>
+      <div class="mgrid" id="m-list"></div>
+    </div>
+  </section>
+</main>
+<div class="lb" id="lb" hidden><button type="button" id="lb-x">إغلاق</button><div><img id="lb-img" alt=""><p id="lb-cap"></p></div></div>
+<div class="toast" id="toast" hidden></div>
+<dialog id="pw-dlg"><form id="pw-form" method="dialog" novalidate>
+  <h3>تغيير كلمة المرور</h3>
+  <div><label for="pw-cur">كلمة المرور الحالية</label><input type="password" id="pw-cur" autocomplete="current-password"></div>
+  <div><label for="pw-new">كلمة المرور الجديدة</label><input type="password" id="pw-new" autocomplete="new-password"></div>
+  <div class="act-err" id="pw-err"></div>
+  <div style="display:flex;gap:8px"><button class="btn" id="pw-ok" type="submit">حفظ</button><button class="btn ghost" type="button" id="pw-x">إلغاء</button></div>
+</form></dialog>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
