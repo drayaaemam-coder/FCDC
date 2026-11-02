@@ -94,8 +94,8 @@ function loadTasks(){
 }
 const centerName=id=>{const c=CENTERS[id];return c?`${c.vil} – مركز ${c.mk}، ${c.gov}${c.assoc?" · "+c.assoc:""}`:id};
 function cardTitle(t){
-  if(t.type==="plan")return`خطة ${monthLabel(t.month)} – ${CENTERS[t.center]?.vil||t.center}`;
-  if(t.type==="batch")return`${fmt(t.activities.length)} أنشطة – ${CENTERS[t.center]?.vil||t.center}`;
+  if(t.type==="plan")return`خطة ${monthLabel(t.month)} – ${CENTERS[t.center]?.vil||t.center}${CENTERS[t.center]?.assoc?" ("+CENTERS[t.center].assoc+")":""}`;
+  if(t.type==="batch")return`${fmt(t.activities.length)} أنشطة – ${CENTERS[t.center]?.vil||t.center}${CENTERS[t.center]?.assoc?" ("+CENTERS[t.center].assoc+")":""}`;
   return t.title;
 }
 function cardHTML(t){
@@ -146,7 +146,7 @@ function renderTasks(){
       <div class="quick"><button type="button" class="btn" data-q="log">+ تسجيل أنشطة منفذة</button><button type="button" class="btn ghost" data-q="plan">إعداد خطة ${monthLabel(next)}</button><button type="button" class="btn ghost" data-q="reports">تقرير ${monthLabel(cur)}</button></div></div>
       <div class="tbl-wrap" style="margin-bottom:18px"><table><thead><tr><th>المركز</th><th>أنشطة ${MONTHS[+cur.slice(5)-1]}</th><th>منها معتمد</th><th>خطة ${MONTHS[+next.slice(5)-1]}</th></tr></thead><tbody>`+
       mine.map(c=>{const l=acts.filter(a=>a.center===c.id&&a.date.startsWith(cur)),ap=l.filter(a=>a.status==="approved").length,p=planSums.find(x=>x.center===c.id&&x.month===next);
-        return `<tr class="inst-row" data-open-plan="${c.id}|${next}"><td>${esc(c.vil)} <span class="hint">– ${esc(c.mk)}</span></td><td>${l.length<MIN_PER_MONTH?`<span class="pill low">${fmt(l.length)} من ${fmt(MIN_PER_MONTH)}</span>`:`<span class="pill ok">${fmt(l.length)}</span>`}</td><td class="num">${fmt(ap)}</td><td>${planPill(p)}</td></tr>`}).join("")+`</tbody></table></div>`;
+        return `<tr class="inst-row" data-open-plan="${c.id}|${next}"><td>${esc(c.vil)} <span class="hint">– ${esc(c.mk)}${c.assoc?" · "+esc(c.assoc):""}</span></td><td>${l.length<MIN_PER_MONTH?`<span class="pill low">${fmt(l.length)} من ${fmt(MIN_PER_MONTH)}</span>`:`<span class="pill ok">${fmt(l.length)}</span>`}</td><td class="num">${fmt(ap)}</td><td>${planPill(p)}</td></tr>`}).join("")+`</tbody></table></div>`;
   }
   $("#t-head").innerHTML=head+`<div class="chips">${chips}</div>`;
   const sec=(title,list,empty)=>`<div class="sec"><div class="sec-h"><h2>${title}</h2><span class="hint">${fmt(list.length)}</span></div>${list.length?`<div class="cards">${list.map(cardHTML).join("")}</div>`:`<div class="empty">${empty}</div>`}</div>`;

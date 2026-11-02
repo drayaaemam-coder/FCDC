@@ -52,7 +52,7 @@ function fillPlanCenters(){
   const list=Object.values(CENTERS).filter(c=>!inst||c.inst===inst);
   const prev=$("#p-center").value||(!isAdmin?st.center:"");
   $("#p-center").innerHTML=(isAdmin||list.length>1?'<option value="">— اختر المركز —</option>':"")+
-    list.map(c=>`<option value="${c.id}">${esc(c.vil)} – ${esc(c.mk)}${isAdmin&&!inst?" · "+esc(INST_BY[c.inst].name):""}</option>`).join("");
+    list.map(c=>`<option value="${c.id}">${esc(c.vil)} – ${esc(c.mk)}${c.assoc?" · "+esc(c.assoc):""}${isAdmin&&!inst?" · "+esc(INST_BY[c.inst].name):""}</option>`).join("");
   if(list.some(c=>c.id===prev))$("#p-center").value=prev;
 }
 $("#p-month").addEventListener("change",renderPlanView);

@@ -208,7 +208,7 @@ function itemHTML(a,where){
   const st=ACT_STATUS[a.status]||ACT_STATUS.pending;
   return `<div class="item"><div class="date num"><b>${fmt(d.getDate())}</b><span>${MONTHS[d.getMonth()]||""}</span></div>
    <div style="min-width:0"><div class="t">${esc(a.title)}</div>
-    <div class="meta"><span class="pill ${st[1]}">${st[0]}</span><span class="tag">${esc(a.type)}</span>${a.photos?`<span class="tag o">${fmt(a.photos)} صور</span>`:""}${where?`<span>${esc(c.vil||"")} – ${esc(c.mk||"")} (${esc(c.gov||"")})</span><span>${esc(INST_BY[a.inst]?.name||"")}</span>`:""}${ppl?`<span class="num">الحضور: ${ppl}</span>`:""}${a.partner?`<span>بالشراكة مع ${esc(a.partner)}</span>`:""}${a.byName?`<span>سجّله: ${esc(a.byName)}</span>`:""}</div>
+    <div class="meta"><span class="pill ${st[1]}">${st[0]}</span><span class="tag">${esc(a.type)}</span>${a.photos?`<span class="tag o">${fmt(a.photos)} صور</span>`:""}${where?`<span>${esc(c.vil||"")} – ${esc(c.mk||"")} (${esc(c.gov||"")})${c.assoc?" · "+esc(c.assoc):""}</span><span>${esc(INST_BY[a.inst]?.name||"")}</span>`:""}${ppl?`<span class="num">الحضور: ${ppl}</span>`:""}${a.partner?`<span>بالشراكة مع ${esc(a.partner)}</span>`:""}${a.byName?`<span>سجّله: ${esc(a.byName)}</span>`:""}</div>
     ${a.status==="returned"&&a.reviewNote?`<div class="note-ret">ملاحظات الإدارة: ${esc(a.reviewNote)}</div>`:""}${a.notes?`<div class="note">${esc(a.notes)}</div>`:""}${a.link?`<div class="note"><a href="${esc(a.link)}" target="_blank" rel="noopener" dir="ltr">${esc(a.link.slice(0,70))}</a></div>`:""}</div>
    <div class="item-a">${canEdit?`<button class="del" data-edit="${a._id}">تعديل</button>`:""}${canDel?`<button class="del" data-del="${a._id}">حذف</button>`:""}</div></div>`;
 }
@@ -273,7 +273,7 @@ function renderDash(){
       <td>${planCell(ic)}</td><td class="num">${fmt(il.length)}</td><td class="num">${fmt(sum(il))}</td><td class="num">${last?shortDate(last):"—"}</td></tr>`);
     if(isOpen)ic.forEach(c=>{const cl=il.filter(a=>a.center===c.id),n=cl.length,l=base.filter(a=>a.center===c.id).map(a=>a.date).sort().pop();
       const pill=!n?'<span class="pill no">لم يسجل</span>':monthly&&n<MIN_PER_MONTH?`<span class="pill low">${fmt(n)} من ٣</span>`:'<span class="pill ok">سجّل</span>';
-      rowsH.push(`<tr class="sub"><td>${esc(c.vil)} <span class="hint">– ${esc(c.mk)}، ${esc(c.gov)}</span></td><td></td><td>${pill}</td><td>${planMonth?planPill(planOf[c.id]):""}</td><td class="num">${fmt(n)}</td><td class="num">${fmt(sum(cl))}</td><td class="num">${l?shortDate(l):"—"}</td></tr>`)});
+      rowsH.push(`<tr class="sub"><td>${esc(c.vil)} <span class="hint">– ${esc(c.mk)}، ${esc(c.gov)}${c.assoc?" · "+esc(c.assoc):""}</span></td><td></td><td>${pill}</td><td>${planMonth?planPill(planOf[c.id]):""}</td><td class="num">${fmt(n)}</td><td class="num">${fmt(sum(cl))}</td><td class="num">${l?shortDate(l):"—"}</td></tr>`)});
   });
   $("#inst-tb").innerHTML=rowsH.join("")||'<tr><td colspan="7" class="hint">لا توجد مراكز ضمن هذا الاختيار.</td></tr>';
   const bt=[...new Set([...TYPES,...list.map(a=>a.type)])].map(t=>[t,list.filter(a=>a.type===t).length]).filter(x=>x[1]).sort((a,b)=>b[1]-a[1]),mx=Math.max(1,...bt.map(x=>x[1]));
@@ -322,7 +322,7 @@ async function renderMedia(){
   let th={};try{th=await fetchThumbs(from,to)}catch(e){}
   mediaShown=doc;
   $("#m-list").innerHTML=doc.map(a=>{const c=CENTERS[a.center]||{};return `<div class="mcard"><div class="t" style="font-weight:600">${esc(a.title)}</div>
-    <div class="meta"><span class="tag">${esc(a.type)}</span><span>${longDate(a.date)}</span><span>${esc(c.vil)} – ${esc(c.mk)} (${esc(c.gov)})</span><span>${esc(INST_BY[a.inst]?.name)}</span></div>
+    <div class="meta"><span class="tag">${esc(a.type)}</span><span>${longDate(a.date)}</span><span>${esc(c.vil)} – ${esc(c.mk)} (${esc(c.gov)})${c.assoc?" · "+esc(c.assoc):""}</span><span>${esc(INST_BY[a.inst]?.name)}</span></div>
     ${a.mediaIds&&a.mediaIds.length?`<div class="thumbs">${a.mediaIds.map(id=>th[id]?`<button type="button" data-lb="${id}" data-cap="${esc(a.title+" · "+c.vil)}"><img src="${th[id]}" alt="صورة من ${esc(a.title)}" loading="lazy"></button>`:"").join("")}</div>`:""}
     ${a.link?`<div class="note"><a href="${esc(a.link)}" target="_blank" rel="noopener" dir="ltr">${esc(a.link)}</a></div>`:""}</div>`}).join("");
 }
@@ -341,7 +341,7 @@ async function mediaDoc(){
   const scope=(inst?INST_BY[inst].name:"كل المؤسسات")+(gov?" · محافظة "+gov:"");
   const body=`${coverBand()}<div class="r-cover"><div class="r-eyebrow">ملف التوثيق الإعلامي</div><h1>التوثيق الإعلامي لأنشطة مراكز تنمية الأسرة والطفل</h1><div class="r-sub">${monthLabel(m)} · ${esc(scope)}</div>
    <div class="r-meta"><span>${fmt(mediaShown.length)} نشاط موثق</span><span>${fmt(ids.length)} صورة</span><span>تاريخ الإصدار: ${longDate(todayStr())}</span></div></div>`+
-   mediaShown.map(a=>{const c=CENTERS[a.center]||{};return `<div class="r-sec"><h2>${esc(a.title)}</h2><p style="font-size:13px;color:#5A6F6B">${longDate(a.date)} · ${esc(a.type)} · ${esc(c.vil)} – ${esc(c.mk)}، ${esc(c.gov)} · ${esc(INST_BY[a.inst]?.name)}${total(a)?` · الحضور ${fmt(total(a))}`:""}</p>
+   mediaShown.map(a=>{const c=CENTERS[a.center]||{};return `<div class="r-sec"><h2>${esc(a.title)}</h2><p style="font-size:13px;color:#5A6F6B">${longDate(a.date)} · ${esc(a.type)} · ${esc(c.vil)} – ${esc(c.mk)}، ${esc(c.gov)}${c.assoc?" · "+esc(c.assoc):""} · ${esc(INST_BY[a.inst]?.name)}${total(a)?` · الحضور ${fmt(total(a))}`:""}</p>
    ${(a.mediaIds||[]).length?`<div class="r-hl">${a.mediaIds.map(id=>full[id]?`<figure><img src="${full[id]}" alt=""></figure>`:"").join("")}</div>`:""}
    ${a.link?`<p style="font-size:13px">رابط النشر: <a href="${esc(a.link)}" dir="ltr">${esc(a.link)}</a></p>`:""}</div>`}).join("")+
    `<div class="r-note">الصور مرفوعة من المؤسسات المشغلة عبر منظومة المتابعة. يُراعى الحصول على موافقة أولياء الأمور قبل النشر العام لأي صورة يظهر فيها أطفال.</div>`;
@@ -393,7 +393,7 @@ async function buildReport(photoMap){
   const scopeName=instId?INST_BY[instId].name:"كل المؤسسات المشغلة (المستوى القومي)";
   const typeRank=[...new Set([...TYPES,...list.map(a=>a.type)])].map(t=>[t,list.filter(a=>a.type===t).length]).filter(x=>x[1]).sort((a,b)=>b[1]-a[1]);
   const zero=centers.filter(c=>!cnt[c.id]),low=centers.filter(c=>cnt[c.id]&&cnt[c.id]<need);
-  const cName=c=>`${esc(c.vil)} (${esc(c.mk)}، ${esc(c.gov)})${instId?"":" – "+esc(INST_BY[c.inst].name)}`;
+  const cName=c=>`${esc(c.vil)} (${esc(c.mk)}، ${esc(c.gov)})${c.assoc?" · "+esc(c.assoc):""}${instId?"":" – "+esc(INST_BY[c.inst].name)}`;
 
   let h=coverBand()+`<div class="r-cover"><div class="r-eyebrow">${kindName}</div>
    <h1>${kindName} لأنشطة مراكز تنمية الأسرة والطفل</h1><div class="r-sub">${esc(pLabel)} · ${esc(scopeName)}</div>
@@ -431,7 +431,7 @@ async function buildReport(photoMap){
       return `<tr><td>${name}</td><td>${fmt(pp.length)}</td><td>${fmt(planned)}</td><td>${fmt(done)}</td><td>${planned?fmt(pct(done,planned))+"%":"—"}</td></tr>`};
     h+=`<div class="r-sec">${sec("الالتزام بالخطة الشهرية")}<p>قُدّمت ${fmt(pl.length)} خطة شهرية (مرسلة أو معتمدة) من أصل ${fmt(due)} خطة مستحقة لمراكز النطاق، تضمنت ${fmt(pl.reduce((s,x)=>s+x.items,0))} نشاطًا مخططًا. تُقارن الأنشطة المنفذة بالمخططة للمراكز التي قدّمت خططها فقط.</p>
       <div class="r-tw"><table class="r-t"><thead><tr><th>${instId?"المركز":"المؤسسة"}</th><th>خطط مقدّمة</th><th>أنشطة مخططة</th><th>أنشطة منفذة</th><th>نسبة التنفيذ</th></tr></thead><tbody>`+
-      (instId?centers.map(c=>row(`${esc(c.vil)} – ${esc(c.mk)}`,[c])):INST.map(i=>row(esc(i.name),centers.filter(c=>c.inst===i.id)))).join("")+`</tbody></table></div></div>`;
+      (instId?centers.map(c=>row(`${esc(c.vil)} – ${esc(c.mk)}${c.assoc?" · "+esc(c.assoc):""}`,[c])):INST.map(i=>row(esc(i.name),centers.filter(c=>c.inst===i.id)))).join("")+`</tbody></table></div></div>`;
   }
   const govs=[...new Set(centers.map(c=>c.gov))];
   h+=`<div class="r-sec">${sec("التوزيع حسب المحافظة")}<div class="r-tw"><table class="r-t"><thead><tr><th>المحافظة</th><th>المراكز</th><th>سجّلت</th><th>الأنشطة</th><th>أطفال</th><th>سيدات</th><th>رجال</th></tr></thead><tbody>`+
@@ -448,7 +448,7 @@ async function buildReport(photoMap){
     <div><h3>أقل من الحد الأدنى (${fmt(low.length)})</h3>${low.length?`<ul>${low.map(c=>`<li>${cName(c)}: ${fmt(cnt[c.id])} من ${fmt(need)}</li>`).join("")}</ul>`:'<p style="font-size:13px">لا يوجد.</p>'}</div></div></div>`;
   const hl=[...list].sort((a,b)=>(b.photos?1:0)-(a.photos?1:0)||total(b)-total(a)).slice(0,6);
   h+=`<div class="r-sec">${sec("أبرز الأنشطة")}<div class="r-hl">`+hl.map(a=>{const c=CENTERS[a.center]||{},pid=(a.mediaIds||[])[0],src=pid&&photoMap[pid];
-    return `<figure>${src?`<img src="${src}" alt="">`:""}<figcaption><b>${esc(a.title)}</b>${longDate(a.date)} · ${esc(c.vil)}، ${esc(c.gov)}<br>${esc(a.type)}${total(a)?` · ${fmt(total(a))} مشارك`:""}</figcaption></figure>`}).join("")+`</div></div>`;
+    return `<figure>${src?`<img src="${src}" alt="">`:""}<figcaption><b>${esc(a.title)}</b>${longDate(a.date)} · ${esc(c.vil)}، ${esc(c.gov)}${c.assoc?" · "+esc(c.assoc):""}<br>${esc(a.type)}${total(a)?` · ${fmt(total(a))} مشارك`:""}</figcaption></figure>`}).join("")+`</div></div>`;
   return h+methodNote(need,spec);
 }
 let lastReportSummary={},lastPendingN=0;
