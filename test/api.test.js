@@ -110,6 +110,22 @@ test("listing is scoped, photos are served", async () => {
   assert.ok(all.length >= mine.length);
 });
 
+test("photos can be stored inside the database (PHOTO_STORAGE=db)", async () => {
+  const prev = config.photoStorage; config.photoStorage = "db";
+  try {
+    const r = await inst("POST", "/api/activities/batch", batch("hk-03", [act(`صور القاعدة ${stamp} 1`, { kids: 11 }), act(`صور القاعدة ${stamp} 2`, { kids: 12 }), act(`صور القاعدة ${stamp} 3`, { kids: 13 })], { 1: 1 }));
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    const a = (await inst("GET", "/api/activities")).body.activities.find(x => x.title === `صور القاعدة ${stamp} 2`);
+    const { rows } = await pool.query("SELECT full_file, (full_data IS NOT NULL AND thumb_data IS NOT NULL) AS stored FROM photos WHERE id=$1", [a.mediaIds[0]]);
+    assert.ok(rows[0].stored); assert.match(rows[0].full_file, /^db:/);
+    for (const size of ["thumb", "full"]) {
+      const ph = await inst("GET", `/api/photos/${a.mediaIds[0]}/${size}`);
+      assert.equal(ph.status, 200); assert.deepEqual(Buffer.from(ph.body), JPEG);
+    }
+    assert.equal((await inst("DELETE", `/api/activities/${a.id}`)).status, 200);
+  } finally { config.photoStorage = prev; }
+});
+
 test("monthly plan: validation, submit, lock, review", async () => {
   await pool.query("DELETE FROM monthly_plans WHERE plan_month=$1", [planMonth]);
   const item = (title, extra = {}) => ({ title, type: "تنمية ورعاية الطفل", target: "أطفال الحضانة", expected: 25,

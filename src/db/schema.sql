@@ -73,6 +73,9 @@ CREATE TABLE IF NOT EXISTS photos (
   created_at   TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS photos_activity_idx ON photos(activity_id);
+-- عند PHOTO_STORAGE=db تُحفظ الصورة نفسها هنا بدل مجلد uploads
+ALTER TABLE photos ADD COLUMN IF NOT EXISTS full_data  BYTEA;
+ALTER TABLE photos ADD COLUMN IF NOT EXISTS thumb_data BYTEA;
 
 -- الخطة الشهرية: خطة مستقلة لكل مركز في كل شهر
 CREATE TABLE IF NOT EXISTS monthly_plans (

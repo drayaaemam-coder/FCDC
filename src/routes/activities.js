@@ -137,6 +137,11 @@ router.post("/batch", upload.any(), ah(async (req, res) => {
           const full = files[`p${i}_${j}_full`], thumb = files[`p${i}_${j}_thumb`];
           if (!full || !thumb) continue;
           const base = `${center.id}/${actId}-${j}-${crypto.randomBytes(4).toString("hex")}`;
+          if (config.photoStorage === "db") {
+            await c.query(`INSERT INTO photos (activity_id, full_file, thumb_file, sort_order, full_data, thumb_data)
+                           VALUES ($1,$2,$3,$4,$5,$6)`, [actId, `db:${base}.jpg`, `db:${base}-t.jpg`, j, full.buffer, thumb.buffer]);
+            continue;
+          }
           for (const [suffix, f] of [["", full], ["-t", thumb]]) {
             const rel = `${base}${suffix}.jpg`, abs = path.join(config.uploadDir, rel);
             await fs.mkdir(path.dirname(abs), { recursive: true });
@@ -243,7 +248,8 @@ router.delete("/:id", ah(async (req, res) => {
   const { rows: ph } = await query("DELETE FROM photos WHERE activity_id=$1 RETURNING full_file, thumb_file", [id]);
   await query("DELETE FROM activities WHERE id=$1", [id]);
   await logEvent({ query }, "batch", a.batch_id, "deleted", req.user.id, `«${a.title}»`);
-  await Promise.all(ph.flatMap(p => [p.full_file, p.thumb_file]).map(f => fs.unlink(path.join(config.uploadDir, f)).catch(() => {})));
+  await Promise.all(ph.flatMap(p => [p.full_file, p.thumb_file]).filter(f => !f.startsWith("db:"))
+    .map(f => fs.unlink(path.join(config.uploadDir, f)).catch(() => {})));
   res.json({ ok: true });
 }));
 

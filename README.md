@@ -159,7 +159,21 @@ uploads/               صور التوثيق (يجب أخذ نسخة احتيا�
 كل طلب يغيّر بيانات يجب أن يحمل الترويسة `X-Requested-With: fetch` (حماية من CSRF).
 
 ## النشر على الإنترنت
-- يصلح لأي استضافة Node (Render, Railway, VPS…) مع PostgreSQL مُدار (Neon, Supabase…) — اضبط `DATABASE_SSL=true` عند الحاجة.
-- اضبط `NODE_ENV=production` و `JWT_SECRET` طويل وعشوائي، وشغّل خلف HTTPS.
-- مجلد `uploads/` يجب أن يكون على قرص دائم (Volume). على الاستضافات التي تمسح القرص عند كل نشر، انقل الصور لخدمة تخزين مثل S3/Cloudflare R2.
-- خذ نسخة احتياطية دورية: `pg_dump` للقاعدة + نسخ مجلد `uploads/`.
+
+### الطريقة الأسهل: Render بضغطة واحدة
+1. افتح الرابط: **https://render.com/deploy?repo=https://github.com/drayaaemam-coder/FCDC**
+2. سجّل الدخول في Render بحساب GitHub.
+3. اكتب **ADMIN_EMAIL** و**ADMIN_PASSWORD** (حساب مدير المنظومة) ثم اضغط **Deploy Blueprint**.
+4. بعد انتهاء البناء (حوالي ١٠ دقائق أول مرة) يظهر رابط الموقع في صفحة الخدمة `fcdc`، بالشكل `https://fcdc-xxxx.onrender.com`.
+
+ملف `render.yaml` يجهّز كل شيء: خدمة ويب من `Dockerfile` (ومعها Chromium لملفات PDF)، وقاعدة بيانات PostgreSQL، و`JWT_SECRET` عشوائي، و`PHOTO_STORAGE=db` لحفظ صور الأنشطة داخل قاعدة البيانات لأن قرص الخطة المجانية يُمسح عند كل إعادة تشغيل. رابط الموقع يُضبط تلقائيًا لرموز QR من `RENDER_EXTERNAL_URL`. أي `git push` على فرع `main` يعيد نشر الموقع تلقائيًا.
+
+**حدود الخطة المجانية في Render:**
+- الموقع ينام بعد ١٥ دقيقة بدون زيارات، وأول فتح بعدها يأخذ حوالي دقيقة.
+- **قاعدة البيانات المجانية تنتهي بعد ٣٠ يومًا** (ومعها مهلة ١٤ يومًا للترقية قبل حذف البيانات)، وليس لها نسخ احتياطي. للاستخدام الفعلي رقِّ قاعدة البيانات لخطة مدفوعة من لوحة Render، أو استخدم قاعدة مجانية دائمة مثل Neon وضع رابطها في `DATABASE_URL` مع `DATABASE_SSL=true`.
+
+### أي استضافة أخرى
+- يصلح لأي استضافة Node أو Docker (Railway, VPS…) مع PostgreSQL مُدار (Neon, Supabase…). اضبط `DATABASE_SSL=true` عند الحاجة.
+- اضبط `NODE_ENV=production` و `JWT_SECRET` طويل وعشوائي، وشغّل خلف HTTPS، واضبط `PUBLIC_URL` برابط الموقع.
+- الصور: إما `PHOTO_STORAGE=db` (داخل قاعدة البيانات)، أو مجلد `uploads/` على قرص دائم (Volume).
+- خذ نسخة احتياطية دورية: `pg_dump` للقاعدة (+ نسخ مجلد `uploads/` لو الصور على القرص).

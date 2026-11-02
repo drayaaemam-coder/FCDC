@@ -1,0 +1,34 @@
+# نشر الموقع على Render بضغطة واحدة:
+#   https://render.com/deploy?repo=https://github.com/drayaaemam-coder/FCDC
+# ينشئ خدمة ويب (من Dockerfile، ومعها Chromium لملفات PDF) وقاعدة بيانات PostgreSQL،
+# ويطلب منك أثناء الإعداد بريد المدير وكلمة مروره.
+services:
+  - type: web
+    name: fcdc
+    runtime: docker
+    plan: free
+    region: frankfurt
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fcdc-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      # قرص الخطة المجانية يُمسح عند كل إعادة تشغيل، فتُحفظ صور الأنشطة داخل قاعدة البيانات
+      - key: PHOTO_STORAGE
+        value: db
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+
+databases:
+  - name: fcdc-db
+    plan: free
+    region: frankfurt
+    databaseName: fcdc
+    user: fcdc
