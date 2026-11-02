@@ -21,7 +21,7 @@ router.get("/verify/:code", ah(async (req, res) => {
       scope: x.inst || "كل المؤسسات المشغلة (المستوى القومي)", period: x.period, approvedAt: x.at, approver: x.approver, summary: x.summary });
   }
   const p = await query(
-    `SELECT p.plan_month, p.reviewed_at AS at, c.village, c.markaz, c.governorate, i.name AS inst, u.name AS approver,
+    `SELECT p.plan_month, p.reviewed_at AS at, c.village, c.markaz, c.association, c.governorate, i.name AS inst, u.name AS approver,
             (SELECT count(*) FROM plan_items WHERE plan_id=p.id)::int AS items,
             (SELECT COALESCE(sum(expected_count),0) FROM plan_items WHERE plan_id=p.id)::int AS expected
      FROM monthly_plans p JOIN centers c ON c.id = p.center_id JOIN institutions i ON i.id = p.institution_id
@@ -29,7 +29,7 @@ router.get("/verify/:code", ah(async (req, res) => {
   if (p.rows[0]) {
     const x = p.rows[0];
     return res.json({ valid: true, type: "plan", code, docType: "الخطة الشهرية للأنشطة والفعاليات",
-      title: `خطة ${monthLabel(x.plan_month)} – ${x.village}`, scope: `${x.inst} · مركز ${x.markaz}، ${x.governorate}`,
+      title: `خطة ${monthLabel(x.plan_month)} – ${x.village}`, scope: `${x.inst}${x.association ? " · " + x.association : ""} · مركز ${x.markaz}، ${x.governorate}`,
       period: x.plan_month, approvedAt: x.at, approver: x.approver, summary: { "عدد الأنشطة المخططة": x.items, "المستفيدون المتوقعون": x.expected } });
   }
   res.json({ valid: false });

@@ -18,13 +18,13 @@ async function main() {
         `INSERT INTO institutions (id, name, sort_order) VALUES ($1,$2,$3)
          ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, sort_order = EXCLUDED.sort_order`,
         [inst.id, inst.name, i]);
-      for (const [k, [gov, mk, vil]] of inst.c.entries()) {
+      for (const [k, [gov, mk, vil, assoc = ""]] of inst.c.entries()) {
         const id = inst.id + "-" + String(k + 1).padStart(2, "0");
         await c.query(
-          `INSERT INTO centers (id, institution_id, governorate, markaz, village) VALUES ($1,$2,$3,$4,$5)
+          `INSERT INTO centers (id, institution_id, governorate, markaz, village, association) VALUES ($1,$2,$3,$4,$5,$6)
            ON CONFLICT (id) DO UPDATE SET institution_id=EXCLUDED.institution_id, governorate=EXCLUDED.governorate,
-             markaz=EXCLUDED.markaz, village=EXCLUDED.village`,
-          [id, inst.id, gov, mk, vil]);
+             markaz=EXCLUDED.markaz, village=EXCLUDED.village, association=EXCLUDED.association`,
+          [id, inst.id, gov, mk, vil, assoc]);
       }
     }
     for (const [i, a] of AXES.entries()) {

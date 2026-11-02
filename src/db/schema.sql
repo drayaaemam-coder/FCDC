@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS centers (
   active          BOOLEAN      NOT NULL DEFAULT TRUE
 );
 CREATE INDEX IF NOT EXISTS centers_inst_idx ON centers(institution_id);
+ALTER TABLE centers ADD COLUMN IF NOT EXISTS association VARCHAR(200) NOT NULL DEFAULT ''; -- الجمعية المحلية التي تدير المركز
 
 -- محاور الأنشطة (inactive = محور قديم لم يعد يُعرض للاختيار، تبقى أنشطته المسجلة كما هي)
 CREATE TABLE IF NOT EXISTS activity_types (

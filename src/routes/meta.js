@@ -8,7 +8,7 @@ const { OCCASIONS, MOVABLE_OCCASIONS } = require("../db/seed-data");
 router.get("/", ah(async (_req, res) => {
   const [inst, centers, types] = await Promise.all([
     query("SELECT id, name FROM institutions ORDER BY sort_order, name"),
-    query("SELECT id, institution_id AS inst, governorate AS gov, markaz AS mk, village AS vil FROM centers WHERE active ORDER BY id"),
+    query("SELECT id, institution_id AS inst, governorate AS gov, markaz AS mk, village AS vil, association AS assoc FROM centers WHERE active ORDER BY id"),
     query("SELECT name, description FROM activity_types WHERE active ORDER BY sort_order, name"),
   ]);
   res.json({

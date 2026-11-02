@@ -76,7 +76,7 @@ function renderPlanOverview(){
   $("#p-overview").innerHTML=`<div class="kpis" style="margin-bottom:8px">${k("approved",n("approved"),"خطط معتمدة")}${k("submitted",n("submitted"),"مرسلة تنتظر الاعتماد")}${k("work",n("draft")+n("returned"),"قيد الإعداد أو معادة")}${k("none",n("none"),"مراكز لم تبدأ خطتها")}</div>
     <p class="hint" style="margin:0 0 8px">${planFilter?`يعرض ${fmt(shown.length)} مركز · <button type="button" class="link" data-pf-filter="">عرض الكل</button>`:"اضغط على أي رقم لتصفية المراكز حسب حالة الخطة."}</p>
     <div class="tbl-wrap" style="margin-bottom:22px"><table><thead><tr><th>المركز</th>${isAdmin?"<th>المؤسسة</th>":""}<th>حالة الخطة</th><th>الأنشطة المخططة</th><th>المستفيدون المتوقعون</th><th>آخر تحديث</th></tr></thead><tbody>`+
-    shown.map(c=>{const x=by[c.id];return `<tr class="inst-row${c.id===sel?" open":""}" data-pcenter="${c.id}" tabindex="0"><td>${esc(c.vil)} <span class="hint">– ${esc(c.mk)}، ${esc(c.gov)}</span></td>
+    shown.map(c=>{const x=by[c.id];return `<tr class="inst-row${c.id===sel?" open":""}" data-pcenter="${c.id}" tabindex="0"><td>${esc(c.vil)} <span class="hint">– ${esc(c.mk)}، ${esc(c.gov)}${c.assoc?" · "+esc(c.assoc):""}</span></td>
       ${isAdmin?`<td>${esc(INST_BY[c.inst].name)}</td>`:""}<td>${planPill(x)}</td><td class="num">${x?fmt(x.items):"—"}</td><td class="num">${x?fmt(x.expected):"—"}</td>
       <td class="num">${x?shortDate(String(x.updatedAt).slice(0,10)):"—"}</td></tr>`}).join("")+`</tbody></table></div>`;
 }
@@ -136,7 +136,7 @@ function renderPlanEditor(){
   const meta=[plan.updatedAt?`آخر تحديث ${longDate(String(plan.updatedAt).slice(0,10))}${plan.updatedByName?" بواسطة "+esc(plan.updatedByName):""}`:"",
     plan.status==="approved"&&plan.reviewedByName?`اعتمدها ${esc(plan.reviewedByName)}`:""].filter(Boolean).join(" · ");
   let h=`<div class="panel" style="margin-bottom:14px"><div class="sec-h" style="margin:0"><div>
-      <h2 style="font-size:18px">خطة ${esc(c.vil)} <span class="hint">– مركز ${esc(c.mk)}، ${esc(c.gov)}</span></h2>
+      <h2 style="font-size:18px">خطة ${esc(c.vil)} <span class="hint">– مركز ${esc(c.mk)}، ${esc(c.gov)}${c.assoc?" · "+esc(c.assoc):""}</span></h2>
       <div class="meta"><span>${esc(INST_BY[c.inst].name)}</span><span>${monthLabel(ym)}</span>${meta?`<span>${meta}</span>`:""}${plan.code?`<span>كود الاعتماد <bdi dir="ltr" class="code">${esc(plan.code)}</bdi></span>`:""}</div></div>${planPill(plan)}</div></div>`;
   if(plan.status==="returned"&&plan.note)h+=`<div class="notice bad"><b>ملاحظات إدارة المشروع:</b> ${esc(plan.note)}</div>`;
   if(locked)h+=`<div class="notice">${plan.status==="approved"?"الخطة معتمدة.":"الخطة مرسلة للاعتماد."} لا يمكن تعديلها إلا إذا أعادتها إدارة المشروع للتعديل.</div>`;
@@ -271,7 +271,7 @@ function planDoc(){
   const c=CENTERS[plan.center],ym=planMonthVal(),list=sortedItems();
   const byAxis=AXES.map(a=>[a.name,list.filter(r=>r.type===a.name)]).filter(x=>x[1].length);
   const body=coverBand()+`<div class="r-cover"><div class="r-eyebrow">الخطة الشهرية للأنشطة والفعاليات</div>
-    <h1>خطة ${monthLabel(ym)} – ${esc(c.vil)}</h1><div class="r-sub">مركز تنمية الأسرة والطفل بقرية ${esc(c.vil)} · مركز ${esc(c.mk)}، محافظة ${esc(c.gov)} · ${esc(INST_BY[c.inst].name)}</div>
+    <h1>خطة ${monthLabel(ym)} – ${esc(c.vil)}</h1><div class="r-sub">مركز تنمية الأسرة والطفل بقرية ${esc(c.vil)} · مركز ${esc(c.mk)}، محافظة ${esc(c.gov)} · ${esc(INST_BY[c.inst].name)}${c.assoc?" · "+esc(c.assoc):""}</div>
     <div class="r-meta"><span>حالة الخطة: ${PLAN_STATUS[plan.status]?.[0]||"مسودة"}</span><span>${fmt(list.length)} نشاط</span><span>${fmt(list.reduce((s,r)=>s+(+r.expected||0),0))} مستفيد متوقع</span><span>تاريخ الإصدار: ${longDate(todayStr())}</span></div></div>
     <div class="r-sec"><h2><span>١</span>جدول الأنشطة</h2><div class="r-tw"><table class="r-t"><thead><tr><th>م</th><th>اليوم والتاريخ</th><th>التوقيت</th><th>اسم النشاط</th><th>المحور</th><th>الفئة المستهدفة</th><th>العدد المتوقع</th><th>الجهة المنفذة / الشريكة</th><th>المسؤول عن التنفيذ</th></tr></thead><tbody>`+
     list.map((r,i)=>`<tr><td>${fmt(i+1)}</td><td>${dayName(r.date)} ${shortDate(r.date)}</td><td>${fmtTime(r.start)} – ${fmtTime(r.end)}</td><td>${esc(r.title)}</td><td>${esc(r.type)}</td><td>${esc(r.target)}</td><td>${fmt(+r.expected||0)}</td><td>${esc(r.partner)||"—"}</td><td>${esc(r.responsible)}</td></tr>`).join("")+

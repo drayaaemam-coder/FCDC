@@ -92,7 +92,7 @@ function loadTasks(){
   tasksLoading=(async()=>{try{tasks=(await api("/api/approvals")).items}catch(x){$("#t-body").innerHTML=`<div class="notice bad">${esc(x.message)}</div>`;return}renderTasks()})();
   return tasksLoading;
 }
-const centerName=id=>{const c=CENTERS[id];return c?`${c.vil} – مركز ${c.mk}، ${c.gov}`:id};
+const centerName=id=>{const c=CENTERS[id];return c?`${c.vil} – مركز ${c.mk}، ${c.gov}${c.assoc?" · "+c.assoc:""}`:id};
 function cardTitle(t){
   if(t.type==="plan")return`خطة ${monthLabel(t.month)} – ${CENTERS[t.center]?.vil||t.center}`;
   if(t.type==="batch")return`${fmt(t.activities.length)} أنشطة – ${CENTERS[t.center]?.vil||t.center}`;

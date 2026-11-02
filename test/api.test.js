@@ -71,6 +71,10 @@ test("meta returns institutions, centers and types", async () => {
   assert.equal(r.body.institutions.length, 10);
   assert.equal(r.body.institutions.reduce((s, i) => s + i.centers.length, 0), 47);
   assert.equal(r.body.types.length, 10);
+  const orman = r.body.institutions.find(i => i.id === "or").centers;
+  assert.deepEqual(orman.map(c => [c.vil, c.assoc]), [
+    ["زاوية صقر", "جمعية أبناء البلد"], ["نجع صفر (العركي)", "جمعية الزهراء للتنمية"], ["الساحل بحري", "جمعية منتدى شباب البلينا"],
+    ["الباسكية", "جمعية تنمية المجتمع"], ["أولاد يحيى الحاجر", "جمعية الشبان العالمية"]]);
 });
 
 test("batch needs at least 3 activities", async () => {

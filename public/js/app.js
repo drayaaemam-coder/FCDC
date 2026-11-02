@@ -70,9 +70,9 @@ function renderSteps(){
     if(!st.center){
       const byGov={};Object.values(CENTERS).filter(c=>c.inst===st.inst).forEach(c=>(byGov[c.gov]=byGov[c.gov]||[]).push(c));
       s2.innerHTML='<p class="hint">اختر المركز الذي نُفّذت فيه الأنشطة.</p>'+Object.entries(byGov).map(([g,l])=>`<div class="gov-group"><h3>محافظة ${esc(g)}</h3><div class="center-grid">`+
-        l.map(c=>`<button class="pick" data-center="${c.id}"><span><span class="vil">${esc(c.vil)}</span><span class="mk">مركز ${esc(c.mk)}</span></span></button>`).join("")+'</div></div>').join("");
+        l.map(c=>`<button class="pick" data-center="${c.id}"><span><span class="vil">${esc(c.vil)}</span><span class="mk">مركز ${esc(c.mk)}</span>${c.assoc?`<span class="as">${esc(c.assoc)}</span>`:""}</span></button>`).join("")+'</div></div>').join("");
     }else{const c=CENTERS[st.center];
-      s2.innerHTML=`<div class="chosen"><strong>${esc(c.vil)}</strong><span class="hint" style="margin:0">مركز ${esc(c.mk)} · ${esc(c.gov)}</span><button class="link" data-reset="center">تغيير</button></div>`;}
+      s2.innerHTML=`<div class="chosen"><strong>${esc(c.vil)}</strong><span class="hint" style="margin:0">مركز ${esc(c.mk)} · ${esc(c.gov)}${c.assoc?" · "+esc(c.assoc):""}</span><button class="link" data-reset="center">تغيير</button></div>`;}
   }
   $("#s3").hidden=!st.center; if(st.center)checkAll();
   renderMine();
@@ -292,8 +292,8 @@ function renderDash(){
   $("#feed").innerHTML=list.length?list.slice(0,feedLimit).map(a=>itemHTML(a,true)).join(""):'<div class="empty">لا توجد أنشطة ضمن هذا الاختيار. عند تسجيل المؤسسات لأنشطتها ستظهر هنا مباشرة.</div>';
   $("#more").hidden=list.length<=feedLimit;
   $("#csv").onclick=()=>{
-    const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"',head=["التاريخ","المؤسسة","المحافظة","المركز","القرية","كود المركز","المحور","العنوان","حالة الاعتماد","أطفال","سيدات","رجال","عدد الصور","رابط إعلامي","جهة شريكة","ملاحظات"];
-    const lines=[head.map(q).join(",")].concat(list.map(a=>{const c=CENTERS[a.center]||{};return[a.date,INST_BY[a.inst]?.name,c.gov,c.mk,c.vil,a.center,a.type,a.title,(ACT_STATUS[a.status]||[""])[0],a.kids||0,a.women||0,a.men||0,a.photos||0,a.link,a.partner,a.notes].map(q).join(",")}));
+    const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"',head=["التاريخ","المؤسسة","الجمعية","المحافظة","المركز","القرية","كود المركز","المحور","العنوان","حالة الاعتماد","أطفال","سيدات","رجال","عدد الصور","رابط إعلامي","جهة شريكة","ملاحظات"];
+    const lines=[head.map(q).join(",")].concat(list.map(a=>{const c=CENTERS[a.center]||{};return[a.date,INST_BY[a.inst]?.name,c.assoc,c.gov,c.mk,c.vil,a.center,a.type,a.title,(ACT_STATUS[a.status]||[""])[0],a.kids||0,a.women||0,a.men||0,a.photos||0,a.link,a.partner,a.notes].map(q).join(",")}));
     saveFile("أنشطة-المراكز-"+todayStr()+".csv","﻿"+lines.join("\r\n"));
   };
 }
@@ -422,7 +422,7 @@ async function buildReport(photoMap){
     `</tbody><tfoot><tr><td>الإجمالي</td><td>${fmt(centers.length)}</td><td>${fmt(covered)}</td><td>${fmt(met)}</td><td>${fmt(list.length)}</td><td>${fmt(sum(list))}</td><td>${fmt(pct(docd,list.length))}%</td></tr></tfoot></table></div></div>`;
   }else{
     h+=`<div class="r-sec">${sec("الأداء حسب المركز")}<div class="r-tw"><table class="r-t"><thead><tr><th>المركز</th><th>المحافظة</th><th>الأنشطة</th><th>الحد الأدنى</th><th>المشاركات</th><th>آخر نشاط</th></tr></thead><tbody>`+
-    centers.map(c=>{const cl=list.filter(a=>a.center===c.id),l=cl.map(a=>a.date).sort().pop();return `<tr><td>${esc(c.vil)} – ${esc(c.mk)}</td><td>${esc(c.gov)}</td><td>${fmt(cl.length)}</td><td>${cl.length>=need?"متحقق":"غير متحقق"}</td><td>${fmt(sum(cl))}</td><td>${l?longDate(l):"—"}</td></tr>`}).join("")+`</tbody></table></div></div>`;
+    centers.map(c=>{const cl=list.filter(a=>a.center===c.id),l=cl.map(a=>a.date).sort().pop();return `<tr><td>${esc(c.vil)} – ${esc(c.mk)}${c.assoc?`<br><small style="color:#5A6F6B">${esc(c.assoc)}</small>`:""}</td><td>${esc(c.gov)}</td><td>${fmt(cl.length)}</td><td>${cl.length>=need?"متحقق":"غير متحقق"}</td><td>${fmt(sum(cl))}</td><td>${l?longDate(l):"—"}</td></tr>`}).join("")+`</tbody></table></div></div>`;
   }
   const pl=planSums.filter(x=>planOK(x)&&spec.months.includes(x.month)&&(!instId||x.inst===instId));
   if(pl.length){
