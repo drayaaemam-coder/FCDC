@@ -364,3 +364,7 @@ dialog.preview iframe{flex:1;border:0;width:100%;background:#EEF3F2}
 .r-stamp-v{font-size:11.5px;color:#5A6F6B;overflow-wrap:anywhere}
 .r-code{font-family:ui-monospace,Consolas,monospace;font-weight:700;color:#0B4F4A;letter-spacing:.5px}
 @media (max-width:760px){.hero-k div{min-width:0;flex:1}.arow{grid-template-columns:auto minmax(0,1fr)}.arow .pill{grid-column:2}}
+
+/* اسم قاعدة البيانات في الرأس يعود للصفحة الرئيسية العامة */
+.home-link{color:inherit;text-decoration:none}
+.home-link:hover{text-decoration:underline;text-underline-offset:4px}

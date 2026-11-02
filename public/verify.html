@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>التحقق من كود الاعتماد</title>
+<title>التحقق من كود الاعتماد · قاعدة بيانات مشروع مراكز تنمية الأسرة والطفل</title>
 <link rel="icon" href="/img/logo5.png">
 <link rel="stylesheet" href="/css/fonts.css">
 <link rel="stylesheet" href="/css/app.css">
@@ -14,10 +14,10 @@
   <img src="/img/logo2.png" alt="وزارة التربية والتعليم والتعليم الفني">
   <img src="/img/logo3.png" alt="وزارة التنمية المحلية والبيئة">
   <img src="/img/logo4.png" alt="التحالف الوطني للعمل الأهلي التنموي">
-  <img src="/img/logo5.png" class="wide" alt="مراكز تنمية الأسرة والطفولة">
+  <img src="/img/logo5.png" class="wide" alt="مراكز تنمية الأسرة والطفل">
 </div></div>
 <header style="position:static"><div class="wrap"><div class="hd" style="padding-block:14px">
-  <div class="brand"><small>التحالف الوطني للعمل الأهلي التنموي · شراكة من أجل الإنسانية</small><h1>التحقق من اعتماد مستند</h1></div>
+  <div class="brand"><small>التحالف الوطني للعمل الأهلي التنموي · شراكة من أجل الإنسانية</small><h1>التحقق من اعتماد مستند</h1><small style="display:block;margin-top:2px"><a href="/home" style="color:inherit">قاعدة بيانات مشروع مراكز تنمية الأسرة والطفل</a></small></div>
 </div></div></header>
 <main class="wrap">
   <form class="login" id="f" style="max-width:560px">
@@ -37,7 +37,7 @@ async function check(code) {
     const d = await (await fetch("/api/public/verify/" + encodeURIComponent(code.trim().toUpperCase()))).json();
     if (!d.valid) { out.innerHTML = '<div class="notice bad"><b>الكود غير صحيح أو غير معتمد.</b> تأكد من كتابته كما هو مطبوع، وإن تكرر الخطأ فالمستند غير صادر من المنظومة.</div>'; return; }
     const sum = Object.entries(d.summary || {}).map(([k, v]) => `<div class="ps-row"><span>${esc(k)}</span><b class="num">${esc(typeof v === "number" ? v.toLocaleString("ar-EG") : v)}</b></div>`).join("");
-    out.innerHTML = `<div class="verified"><div class="vbadge">✓ مستند معتمد وصادر من منظومة متابعة أنشطة مراكز تنمية الأسرة والطفولة</div>
+    out.innerHTML = `<div class="verified"><div class="vbadge">✓ مستند معتمد وصادر من قاعدة بيانات مشروع مراكز تنمية الأسرة والطفل</div>
       <div class="ps-row"><span>نوع المستند</span><b>${esc(d.docType)}</b></div>
       <div class="ps-row"><span>العنوان</span><b>${esc(d.title)}</b></div>
       <div class="ps-row"><span>النطاق</span><b>${esc(d.scope)}</b></div>

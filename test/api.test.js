@@ -159,3 +159,15 @@ test("deleting: owner and admin only; deactivated user is logged out", async () 
   assert.equal((await admin("PATCH", `/api/users/${instUserId}`, { active: false })).status, 200);
   assert.equal((await inst("GET", "/api/activities")).status, 401);
 });
+
+test("landing page for visitors, the app for signed-in users, and public overview", async () => {
+  const visitor = await (await fetch(base + "/")).text();
+  assert.match(visitor, /قاعدة بيانات مشروع مراكز تنمية الأسرة والطفل/);
+  assert.match(visitor, /id="mark"/);                                   // حركة الشعار في الصفحة العامة
+  const signedIn = Buffer.from((await admin("GET", "/")).body).toString();
+  assert.match(signedIn, /id="tasks-n"/);                              // المستخدم المسجّل يدخل المنظومة مباشرة
+  assert.match(Buffer.from((await admin("GET", "/login")).body).toString(), /id="tasks-n"/); // /login يحوّله للمنظومة
+  const o = await (await fetch(base + "/api/public/overview")).json();
+  assert.ok(o.institutions >= 1 && o.centers >= 1 && o.governorates >= 1 && o.axes.length >= 1);
+  assert.deepEqual(Object.keys(o).sort(), ["axes", "centers", "governorates", "institutions"]); // لا بيانات أنشطة أو مستفيدين
+});

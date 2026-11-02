@@ -1,7 +1,7 @@
 {
   "name": "fcdc-tracker",
   "version": "1.0.0",
-  "description": "منظومة متابعة أنشطة مراكز تنمية الأسرة والطفولة — Node.js + Express + PostgreSQL",
+  "description": "قاعدة بيانات مشروع مراكز تنمية الأسرة والطفل — Node.js + Express + PostgreSQL",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

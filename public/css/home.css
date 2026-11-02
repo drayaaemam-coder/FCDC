@@ -1,0 +1,199 @@
+/* الصفحة الرئيسية العامة — قاعدة بيانات مشروع مراكز تنمية الأسرة والطفل
+   ألوان الشعار: أخضر التحالف الداكن، الفيروزي، البرتقالي، وذهبي FCDC */
+:root{--al-dark:#136A62;--al-teal:#16AA9C;--al-orange:#F7923A;--gold:#C9962E;--gold-2:#E8C46A;
+  --hero-a:#EEF7F4;--hero-b:#FFFFFF;--stage:#FFFFFF;--stage-line:#E1ECE9;--arc-ghost:rgba(19,106,98,.07)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--hero-a:#0F201E;--hero-b:#0E1817;--stage:#F7FAF9;--stage-line:#2A4440;--arc-ghost:rgba(61,184,168,.09)}}
+:root[data-theme="dark"]{--hero-a:#0F201E;--hero-b:#0E1817;--stage:#F7FAF9;--stage-line:#2A4440;--arc-ghost:rgba(61,184,168,.09)}
+
+.home{background:var(--bg)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.muted{color:var(--muted)}
+
+/* ---- شريط الشركاء ---- */
+.partners{gap:clamp(10px,3.4vw,46px);padding-block:clamp(10px,1.6vw,16px);flex-wrap:nowrap}
+.partners img{height:clamp(34px,8vw,78px);opacity:0;transform:translateY(6px);animation:pt-in .6s cubic-bezier(.2,.8,.2,1) forwards;animation-delay:calc(var(--d)*90ms + 80ms);transition:transform .25s}
+.partners img.wide{height:clamp(38px,8.8vw,86px)}
+.partners img:hover{transform:translateY(-2px)}
+@keyframes pt-in{to{opacity:1;transform:none}}
+
+/* ---- شريط التنقل ---- */
+.topnav{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.tn{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px}
+.tn-brand{display:flex;align-items:center;gap:10px;color:var(--fg);text-decoration:none;min-width:0}
+.tn-mark{width:34px;height:34px;flex:none}
+.tn-brand span{display:grid;line-height:1.25;min-width:0}
+.tn-brand small{font-size:11.5px;color:var(--muted)}
+.tn-brand b{font-family:var(--f-display);font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tn-links{display:flex;align-items:center;gap:4px}
+.tn-links a:not(.btn){color:var(--fg);text-decoration:none;font-weight:600;font-size:14px;padding:8px 10px;border-radius:8px}
+.tn-links a:not(.btn):hover{background:var(--surface-2)}
+.tn-go{text-decoration:none;display:inline-flex;align-items:center;min-height:40px;padding:8px 16px;font-size:14px}
+@media (max-width:760px){.tn-links a:not(.btn){display:none}}
+.tn-go{white-space:nowrap;flex:none}
+@media (max-width:420px){.tn-brand b{font-size:13.5px}.tn-go{padding:8px 12px;font-size:13.5px}.eyebrow{font-size:12px}}
+
+/* ---- البطل ---- */
+.lp-hero{position:relative;overflow:hidden;background:radial-gradient(1200px 520px at 85% -10%,color-mix(in srgb,var(--al-teal) 13%,transparent),transparent 60%),
+  radial-gradient(700px 380px at 8% 105%,color-mix(in srgb,var(--al-orange) 11%,transparent),transparent 65%),linear-gradient(180deg,var(--hero-a),var(--hero-b))}
+.hero-arcs{position:absolute;inset-inline-end:-4%;bottom:-22%;width:min(50vw,600px);height:auto;pointer-events:none;stroke:var(--arc-ghost);overflow:visible}
+.hero-arcs path{stroke-dasharray:1;stroke-dashoffset:1;animation:mk-draw 2.6s cubic-bezier(.3,.6,.2,1) .2s forwards}
+.hero-in{position:relative;display:grid;grid-template-columns:1.08fr .92fr;gap:clamp(20px,4vw,56px);align-items:center;padding-block:clamp(28px,5vw,64px)}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;margin:0 0 14px;font-size:13px;font-weight:600;color:var(--brand);background:var(--brand-soft);padding:6px 12px;border-radius:999px}
+.eyebrow::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--al-orange);flex:none}
+.lp-hero h1{display:grid;gap:2px}
+.h1-a{font-size:clamp(20px,2.6vw,28px);font-weight:700;color:var(--muted)}
+.h1-b{font-size:clamp(32px,5vw,54px);font-weight:800;line-height:1.15;background:linear-gradient(100deg,var(--al-dark),var(--al-teal) 70%);-webkit-background-clip:text;background-clip:text;color:transparent}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .h1-b{background-image:linear-gradient(100deg,#5CCFBF,#9FE3D8)}}
+:root[data-theme="dark"] .h1-b{background-image:linear-gradient(100deg,#5CCFBF,#9FE3D8)}
+.lead{font-size:clamp(15px,1.5vw,17px);color:var(--muted);max-width:60ch;margin:16px 0 22px;line-height:1.85}
+.cta{display:flex;gap:10px;flex-wrap:wrap}
+.btn.big{min-height:50px;padding:12px 22px;font-size:16px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+a.btn{text-decoration:none}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:26px 0 0}
+.stats div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.stats dt{font-size:12.5px;color:var(--muted)}
+.stats dd{margin:0;font-family:var(--f-display);font-weight:800;font-size:clamp(22px,2.6vw,30px);color:var(--brand);line-height:1.2}
+.stats div{display:flex;flex-direction:column-reverse}
+
+/* ---- مسرح الشعار ---- */
+.stage{position:relative;margin:0;background:var(--stage);border:1px solid var(--stage-line);border-radius:24px;padding:clamp(18px,3vw,34px) clamp(14px,2.6vw,30px) 16px;
+  box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 24px 60px -24px rgba(11,79,74,.28),0 8px 18px -10px rgba(11,79,74,.18);isolation:isolate}
+.stage::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;
+  background:radial-gradient(60% 46% at 50% 36%,rgba(22,170,156,.08),transparent 70%),radial-gradient(40% 18% at 50% 92%,rgba(201,150,46,.12),transparent 70%)}
+.mark{position:relative;width:min(100%,470px);margin-inline:auto;aspect-ratio:452/308;cursor:pointer}
+.mark>*{position:absolute}
+/* المواضع محسوبة من شعار FCDC الأصلي (بالبكسل في الصورة المصدر، الإطار 452×308) */
+.mk-fcdc{left:30.97%;top:15.58%;width:29.2%;height:43.83%}
+.mk-vec,.mk-glow{left:31.31%;top:16.4%;width:28.54%;height:42.53%;overflow:visible}
+.mk-atext{left:21.11%;top:63.12%;width:48.96%;height:29.03%}
+.mk-word{left:2.21%;top:60.71%;width:95.58%;height:36.69%}
+.mk-word img{width:100%;height:100%;display:block}
+.mk-shine{position:absolute;inset:0;pointer-events:none;background:linear-gradient(100deg,transparent 38%,rgba(255,250,225,.95) 50%,transparent 62%) no-repeat;background-size:260% 100%;background-position:160% 0;
+  -webkit-mask:url(/img/brand/fcdc-wordmark.png) center/100% 100% no-repeat;mask:url(/img/brand/fcdc-wordmark.png) center/100% 100% no-repeat;mix-blend-mode:screen}
+
+/* الحالة النهائية (بدون حركة): شعار FCDC كما هو */
+.mk-vec{opacity:0}.mk-atext{opacity:0}
+.mk-glow circle{fill:var(--al-orange);opacity:0;transform-box:fill-box;transform-origin:center}
+.mk-vec .a,.mk-vec .g{stroke-width:16}
+.mk-vec .t{stroke:var(--al-teal)}.mk-vec .d{stroke:var(--al-dark)}
+.mk-vec .g{stroke:var(--gold-2);stroke-width:19.5}
+.mk-dot{fill:var(--al-orange);transform-box:fill-box;transform-origin:center}
+
+/* التشغيل: ١) تنمو أقواس التحالف من جذورها الثلاثة ٢) تهبط الدائرة البرتقالية ٣) يظهر اسم التحالف
+   ٤) تكتسي الأقواس بالحواف الذهبية وتتحول إلى شعار FCDC ٥) تصعد كلمة FCDC الذهبية ويلمع بريقها */
+.mark.play .mk-vec{animation:mk-out .7s ease 3.55s both;opacity:1}
+.mark.play .mk-vec .a{stroke-dasharray:1;stroke-dashoffset:1;animation:mk-draw 1.15s cubic-bezier(.33,.7,.2,1) calc(.2s + var(--i)*.16s) forwards}
+.mark.play .mk-vec .g{stroke-dasharray:1;stroke-dashoffset:1;animation:mk-draw .85s cubic-bezier(.4,.1,.2,1) calc(2.75s + var(--i)*.1s) forwards}
+.mark.play .mk-dot{animation:mk-drop .75s cubic-bezier(.3,1.5,.5,1) 1.15s both}
+.mark.play .mk-glow circle{animation:mk-pulse 3.4s ease-out 1.75s infinite}
+.mark.play .mk-atext{animation:mk-atext 2.3s cubic-bezier(.2,.8,.2,1) 1.5s both}
+.mark.play .mk-fcdc{animation:mk-in .8s ease 3.4s both}
+.mark.play .mk-word{animation:mk-rise .95s cubic-bezier(.2,.8,.2,1) 3.65s both}
+.mark.play .mk-shine{animation:mk-shine 6.5s ease-in-out 4.5s infinite}
+.mark.play+.stage-cap .c1{animation:cap1 3.2s ease .9s both}
+.mark.play+.stage-cap .c2{animation:cap2 .8s ease 4s both}
+@keyframes mk-draw{to{stroke-dashoffset:0}}
+@keyframes mk-drop{0%{transform:translateY(-120%) scale(.55);opacity:0}60%{opacity:1}100%{transform:none;opacity:1}}
+@keyframes mk-pulse{0%{opacity:.42;transform:scale(1)}70%,100%{opacity:0;transform:scale(2.6)}}
+@keyframes mk-atext{0%{opacity:0;transform:translateY(14%)}22%{opacity:1;transform:none}68%{opacity:1;transform:none}100%{opacity:0;transform:translateY(10%)}}
+@keyframes mk-in{from{opacity:0}to{opacity:1}}
+@keyframes mk-out{from{opacity:1}to{opacity:0}}
+@keyframes mk-rise{from{opacity:0;transform:translateY(16%);clip-path:inset(100% 0 0 0)}to{opacity:1;transform:none;clip-path:inset(0 0 0 0)}}
+@keyframes mk-shine{0%{background-position:160% 0}22%,100%{background-position:-60% 0}}
+@keyframes cap1{0%{opacity:0;transform:translateY(6px)}15%,82%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-6px)}}
+@keyframes cap2{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.mark.play .mk-fcdc,.mark.play .mk-word{opacity:0}
+
+.stage-cap{position:relative;height:1.8em;margin:10px 0 0;text-align:center;font-family:var(--f-display);font-weight:700;font-size:14px;color:#2E5B55}
+.stage-cap span{position:absolute;inset:0}
+.stage-cap .c1{opacity:0}
+.replay{position:absolute;top:10px;inset-inline-end:10px;width:36px;height:36px;border-radius:50%;border:1px solid var(--stage-line);background:#fff;color:#2E5B55;display:grid;place-items:center;cursor:pointer;opacity:.75;transition:opacity .2s,transform .3s}
+.replay:hover{opacity:1;transform:rotate(-40deg)}
+
+/* ---- الأقسام ---- */
+.sec-block{padding-block:clamp(36px,6vw,72px)}
+.sec-block.alt{background:var(--surface);border-block:1px solid var(--line)}
+.sb-h{max-width:720px;margin:0 auto clamp(20px,3vw,34px);text-align:center}
+.kicker{margin:0 0 6px;color:var(--orange);font-weight:700;font-size:13.5px;font-family:var(--f-display)}
+.sb-h h2,.vbox h2{font-size:clamp(22px,3vw,32px);font-weight:800}
+.feat{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.feat article{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;transition:transform .25s,box-shadow .25s,border-color .25s}
+.feat article:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--brand) 40%,var(--line));box-shadow:0 14px 30px -18px rgba(11,79,74,.35)}
+.feat h3{font-size:17px;margin:12px 0 6px}
+.feat p{margin:0;color:var(--muted);font-size:14.5px;line-height:1.8}
+.ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--brand-soft);color:var(--brand)}
+.ic svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.feat article:nth-child(3n+2) .ic{background:var(--orange-soft);color:var(--orange)}
+
+/* محاور الخطة: الكروت التي لها صورة من المراكز تأخذ مساحة أكبر */
+.axes{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;counter-reset:ax;grid-auto-flow:dense}
+.axes li{counter-increment:ax;position:relative;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:16px 16px 16px;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.axes li::before{content:counter(ax,arabic-indic);width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:14px;background:var(--al-dark);color:#fff;flex:none}
+.axes li:nth-child(even)::before{background:var(--al-teal)}
+.axes b{font-family:var(--f-display);font-size:15.5px;line-height:1.4}
+.axes p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.75}
+.axes li.ax-ph{grid-column:span 2;grid-row:span 2;padding:0;justify-content:flex-end;min-height:300px;border:0;color:#fff;background:#0B3B37}
+.axes li.ax-ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .8s cubic-bezier(.2,.8,.2,1)}
+.axes li.ax-ph:hover img{transform:scale(1.04)}
+.axes li.ax-ph .cap{position:relative;padding:60px 18px 16px;background:linear-gradient(180deg,transparent,rgba(6,38,35,.55) 35%,rgba(6,38,35,.88));display:grid;gap:4px}
+.axes li.ax-ph::before{position:absolute;top:14px;inset-inline-start:14px;z-index:1;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.axes li.ax-ph b{font-size:18px;color:#fff}
+.axes li.ax-ph p{color:rgba(255,255,255,.88)}
+
+/* صورة كبيرة من المراكز */
+.feature-photo{margin:clamp(18px,3vw,28px) 0 0;border-radius:20px;overflow:hidden;position:relative;aspect-ratio:16/7;background:#0B3B37}
+.feature-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.feature-photo figcaption{position:absolute;inset:auto 0 0;padding:44px 20px 16px;color:#fff;font-family:var(--f-display);font-weight:700;font-size:clamp(15px,1.8vw,19px);background:linear-gradient(180deg,transparent,rgba(6,38,35,.85))}
+
+/* التحقق */
+.vbox{display:grid;grid-template-columns:1.1fr .9fr;gap:22px;align-items:center;background:linear-gradient(115deg,var(--deep),var(--brand) 130%);color:var(--on-deep);border-radius:20px;padding:clamp(20px,4vw,40px);position:relative;overflow:hidden}
+.vbox::after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;background:var(--al-orange);opacity:.13;inset-inline-start:-60px;top:-80px}
+.vbox .kicker{color:var(--gold-2)}
+.vbox .muted{color:var(--on-deep-muted);margin:8px 0 0}
+.vform{display:flex;gap:8px;position:relative;z-index:1}
+.vform input{flex:1;min-width:0;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.95);color:#15302C;padding:12px 14px;font-size:16px;letter-spacing:.5px;min-height:50px}
+.vform .btn{min-height:50px}
+
+/* التذييل */
+.lp-foot{background:var(--deep);color:var(--on-deep);padding-block:28px calc(20px + env(safe-area-inset-bottom,0px))}
+.foot-in{display:grid;gap:16px}
+.foot-brand{display:flex;gap:12px;align-items:center}
+.foot-brand .tn-mark{width:44px;height:44px;background:#fff;border-radius:12px;padding:5px}
+.foot-brand b{font-family:var(--f-display);display:block}
+.foot-brand small{color:var(--on-deep-muted)}
+.foot-partners{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--on-deep-muted);font-size:13.5px}
+.foot-partners li::before{content:"•";color:var(--al-orange);margin-inline-end:6px}
+.foot-copy{margin:0;font-size:13px;color:var(--on-deep-muted);border-top:1px solid rgba(255,255,255,.12);padding-top:14px}
+.foot-copy a{color:#fff}
+
+/* ظهور تدريجي عند التمرير */
+.rv{opacity:0;transform:translateY(14px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.8,.2,1)}
+.rv.in{opacity:1;transform:none}
+
+@media (max-width:980px){.axes{grid-template-columns:repeat(2,minmax(0,1fr))}.feat{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:860px){
+  .hero-in{grid-template-columns:1fr}
+  .stage{order:-1}
+  .vbox{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  .feat{grid-template-columns:1fr}
+  .axes{grid-template-columns:1fr}
+  .axes li.ax-ph{grid-column:auto;grid-row:auto;min-height:260px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .vform{flex-direction:column}
+  .feature-photo{aspect-ratio:4/3}
+  .tn-brand small{display:none}
+}
+
+/* من يفضّل تقليل الحركة: يظهر شعار FCDC مكتملًا مباشرة */
+@media (prefers-reduced-motion:reduce){
+  .partners img,.rv{opacity:1;transform:none;animation:none;transition:none}
+  .hero-arcs path{animation:none;stroke-dashoffset:0}
+  .mark.play *,.mark.play+.stage-cap span{animation:none!important}
+  .mark.play .mk-vec,.mark.play .mk-atext{opacity:0}
+  .mark.play .mk-fcdc,.mark.play .mk-word{opacity:1}
+  .stage-cap .c1{opacity:0}.stage-cap .c2{opacity:1}
+  .replay{display:none}
+}
+@media print{.rv{opacity:1;transform:none}.topnav,.replay{display:none}}

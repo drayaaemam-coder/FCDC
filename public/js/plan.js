@@ -271,7 +271,7 @@ function planDoc(){
   const c=CENTERS[plan.center],ym=planMonthVal(),list=sortedItems();
   const byAxis=AXES.map(a=>[a.name,list.filter(r=>r.type===a.name)]).filter(x=>x[1].length);
   const body=coverBand()+`<div class="r-cover"><div class="r-eyebrow">الخطة الشهرية للأنشطة والفعاليات</div>
-    <h1>خطة ${monthLabel(ym)} – ${esc(c.vil)}</h1><div class="r-sub">مركز تنمية الأسرة والطفولة بقرية ${esc(c.vil)} · مركز ${esc(c.mk)}، محافظة ${esc(c.gov)} · ${esc(INST_BY[c.inst].name)}</div>
+    <h1>خطة ${monthLabel(ym)} – ${esc(c.vil)}</h1><div class="r-sub">مركز تنمية الأسرة والطفل بقرية ${esc(c.vil)} · مركز ${esc(c.mk)}، محافظة ${esc(c.gov)} · ${esc(INST_BY[c.inst].name)}</div>
     <div class="r-meta"><span>حالة الخطة: ${PLAN_STATUS[plan.status]?.[0]||"مسودة"}</span><span>${fmt(list.length)} نشاط</span><span>${fmt(list.reduce((s,r)=>s+(+r.expected||0),0))} مستفيد متوقع</span><span>تاريخ الإصدار: ${longDate(todayStr())}</span></div></div>
     <div class="r-sec"><h2><span>١</span>جدول الأنشطة</h2><div class="r-tw"><table class="r-t"><thead><tr><th>م</th><th>اليوم والتاريخ</th><th>التوقيت</th><th>اسم النشاط</th><th>المحور</th><th>الفئة المستهدفة</th><th>العدد المتوقع</th><th>الجهة المنفذة / الشريكة</th><th>المسؤول عن التنفيذ</th></tr></thead><tbody>`+
     list.map((r,i)=>`<tr><td>${fmt(i+1)}</td><td>${dayName(r.date)} ${shortDate(r.date)}</td><td>${fmtTime(r.start)} – ${fmtTime(r.end)}</td><td>${esc(r.title)}</td><td>${esc(r.type)}</td><td>${esc(r.target)}</td><td>${fmt(+r.expected||0)}</td><td>${esc(r.partner)||"—"}</td><td>${esc(r.responsible)}</td></tr>`).join("")+

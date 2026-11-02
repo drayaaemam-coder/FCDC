@@ -339,7 +339,7 @@ async function mediaDoc(){
   const ids=mediaShown.flatMap(a=>a.mediaIds||[]);
   const full=await fullImages(ids);
   const scope=(inst?INST_BY[inst].name:"كل المؤسسات")+(gov?" · محافظة "+gov:"");
-  const body=`${coverBand()}<div class="r-cover"><div class="r-eyebrow">ملف التوثيق الإعلامي</div><h1>التوثيق الإعلامي لأنشطة مراكز تنمية الأسرة والطفولة</h1><div class="r-sub">${monthLabel(m)} · ${esc(scope)}</div>
+  const body=`${coverBand()}<div class="r-cover"><div class="r-eyebrow">ملف التوثيق الإعلامي</div><h1>التوثيق الإعلامي لأنشطة مراكز تنمية الأسرة والطفل</h1><div class="r-sub">${monthLabel(m)} · ${esc(scope)}</div>
    <div class="r-meta"><span>${fmt(mediaShown.length)} نشاط موثق</span><span>${fmt(ids.length)} صورة</span><span>تاريخ الإصدار: ${longDate(todayStr())}</span></div></div>`+
    mediaShown.map(a=>{const c=CENTERS[a.center]||{};return `<div class="r-sec"><h2>${esc(a.title)}</h2><p style="font-size:13px;color:#5A6F6B">${longDate(a.date)} · ${esc(a.type)} · ${esc(c.vil)} – ${esc(c.mk)}، ${esc(c.gov)} · ${esc(INST_BY[a.inst]?.name)}${total(a)?` · الحضور ${fmt(total(a))}`:""}</p>
    ${(a.mediaIds||[]).length?`<div class="r-hl">${a.mediaIds.map(id=>full[id]?`<figure><img src="${full[id]}" alt=""></figure>`:"").join("")}</div>`:""}
@@ -396,7 +396,7 @@ async function buildReport(photoMap){
   const cName=c=>`${esc(c.vil)} (${esc(c.mk)}، ${esc(c.gov)})${instId?"":" – "+esc(INST_BY[c.inst].name)}`;
 
   let h=coverBand()+`<div class="r-cover"><div class="r-eyebrow">${kindName}</div>
-   <h1>${kindName} لأنشطة مراكز تنمية الأسرة والطفولة</h1><div class="r-sub">${esc(pLabel)} · ${esc(scopeName)}</div>
+   <h1>${kindName} لأنشطة مراكز تنمية الأسرة والطفل</h1><div class="r-sub">${esc(pLabel)} · ${esc(scopeName)}</div>
    <div class="r-meta"><span>نطاق التقرير: ${fmt(centers.length)} مركز</span><span>تاريخ الإصدار: ${longDate(todayStr())}</span><span>المصدر: منظومة متابعة الأنشطة</span></div></div>`;
 
   if(!list.length){
@@ -480,7 +480,7 @@ body{margin:0;background:#EEF3F2;font-family:var(--f-body);color:#15302C;line-he
 ${css}
 .paper{margin:24px auto;box-shadow:0 4px 20px rgba(0,0,0,.08)}${opts.landscape?".paper{max-width:1180px}":""}
 @page{size:A4${opts.landscape?" landscape":""};margin:14mm 12mm 16mm;
-  @bottom-right{content:"منظومة متابعة أنشطة مراكز تنمية الأسرة والطفولة";${box}}
+  @bottom-right{content:"قاعدة بيانات مشروع مراكز تنمية الأسرة والطفل";${box}}
   @bottom-center{content:"${mark}";${box};color:${opts.code?"#0B4F4A":"#B4483A"};font-weight:600}
   @bottom-left{content:"صفحة " counter(page) " من " counter(pages);${box}}}
 ${opts.draft?`body::before{content:"مسودة غير معتمدة";position:fixed;top:42%;left:0;right:0;text-align:center;transform:rotate(-28deg);font:800 64px Cairo,sans-serif;color:rgba(180,72,58,.10);z-index:9;pointer-events:none}`:""}@media print{body{background:#fff}.paper{margin:0;border:0;box-shadow:none;max-width:none;padding:0}.r-sec{break-inside:avoid}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head>
@@ -519,7 +519,7 @@ $("#u-form").addEventListener("submit",async e=>{
 });
 
 /* ================= ACCOUNT ================= */
-$("#logout").onclick=async()=>{try{await api("/api/auth/logout",{method:"POST"})}catch(e){}location.href="/login"};
+$("#logout").onclick=async()=>{try{await api("/api/auth/logout",{method:"POST"})}catch(e){}location.href="/"};
 $("#pw-btn").onclick=()=>{$("#pw-cur").value=$("#pw-new").value="";$("#pw-err").textContent="";$("#pw-dlg").showModal()};
 $("#pw-x").onclick=()=>$("#pw-dlg").close();
 $("#pw-form").addEventListener("submit",async e=>{

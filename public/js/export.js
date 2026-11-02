@@ -130,10 +130,10 @@ async function buildDocx(bodyHtml,doc){
     ...(!code?[P([run("مسودة غير معتمدة — لا يُعتد بها قبل اعتماد إدارة المشروع",{bold:true,color:"B4483A",size:18})],{align:D.AlignmentType.CENTER,after:0})]:[]),
   ]});
   const footer=new D.Footer({children:[new D.Paragraph({bidirectional:true,alignment:D.AlignmentType.CENTER,border:{top:{style:D.BorderStyle.SINGLE,size:4,color:LINE,space:4}},children:[
-    run("منظومة متابعة أنشطة مراكز تنمية الأسرة والطفولة   ·   ",{size:15,color:MUTED}),
+    run("قاعدة بيانات مشروع مراكز تنمية الأسرة والطفل   ·   ",{size:15,color:MUTED}),
     run(code?`كود الاعتماد: ${code}   ·   `:"مسودة غير معتمدة   ·   ",{size:15,color:code?TEAL:"B4483A",bold:true}),
     new D.TextRun({children:["صفحة ",D.PageNumber.CURRENT," من ",D.PageNumber.TOTAL_PAGES],font:FONT,rightToLeft:true,size:15,sizeComplexScript:15,color:MUTED})]})]});
-  const document_=new D.Document({creator:"منظومة متابعة أنشطة مراكز تنمية الأسرة والطفولة",title:doc.title,
+  const document_=new D.Document({creator:"قاعدة بيانات مشروع مراكز تنمية الأسرة والطفل",title:doc.title,
     styles:{default:{document:{run:{font:FONT,size:20,sizeComplexScript:20,rightToLeft:true},paragraph:{bidirectional:true}}}},
     sections:[{properties:{page:{size:{orientation:doc.landscape?D.PageOrientation.LANDSCAPE:D.PageOrientation.PORTRAIT},margin:{top:1300,bottom:1100,left:900,right:900,header:400,footer:400}}},
       headers:{default:header},footers:{default:footer},children}]});

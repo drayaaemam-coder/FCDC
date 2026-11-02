@@ -35,4 +35,16 @@ router.get("/verify/:code", ah(async (req, res) => {
   res.json({ valid: false });
 }));
 
+// أرقام عامة عن هيكل المشروع للصفحة الرئيسية (بدون أي بيانات أنشطة أو مستفيدين)
+router.get("/overview", ah(async (_req, res) => {
+  const [n, axes] = await Promise.all([
+    query(`SELECT (SELECT count(*) FROM institutions)::int AS institutions,
+                  (SELECT count(*) FROM centers WHERE active)::int AS centers,
+                  (SELECT count(DISTINCT governorate) FROM centers WHERE active)::int AS governorates`),
+    query("SELECT name, description FROM activity_types WHERE active ORDER BY sort_order, name"),
+  ]);
+  res.set("Cache-Control", "public, max-age=300");
+  res.json({ ...n.rows[0], axes: axes.rows });
+}));
+
 module.exports = router;

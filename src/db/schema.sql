@@ -1,4 +1,4 @@
--- منظومة متابعة أنشطة مراكز تنمية الأسرة والطفولة
+-- قاعدة بيانات مشروع مراكز تنمية الأسرة والطفل
 -- PostgreSQL schema (idempotent: safe to run more than once)
 
 CREATE TABLE IF NOT EXISTS institutions (

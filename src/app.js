@@ -51,9 +51,16 @@ api.use("/users", requireAdmin, require("./routes/users"));
 api.use((_req, _res, next) => { const e = new Error("غير موجود"); e.status = 404; next(e); });
 app.use("/api", api);
 
+const PUB = path.join(__dirname, "..", "public");
+// الصفحة الرئيسية: الزائر يرى الواجهة العامة للمشروع، والمستخدم المسجّل يدخل المنظومة مباشرة
+app.get("/", loadUser, (req, res) => {
+  res.set({ "Cache-Control": "no-cache", Vary: "Cookie" });
+  res.sendFile(path.join(PUB, req.user ? "index.html" : "home.html"));
+});
+app.get("/login", loadUser, (req, res, next) => req.user ? res.redirect("/") : next());
 // صفحة التحقق العامة من كود الاعتماد (رابط رمز QR)
-app.get("/verify/:code", (_req, res) => res.sendFile(path.join(__dirname, "..", "public", "verify.html")));
-app.use(express.static(path.join(__dirname, "..", "public"), { extensions: ["html"] }));
+app.get("/verify/:code", (_req, res) => res.sendFile(path.join(PUB, "verify.html")));
+app.use(express.static(PUB, { extensions: ["html"], index: false }));
 
 // JSON error handler for the API
 app.use((err, _req, res, _next) => {
